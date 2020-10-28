@@ -1,19 +1,74 @@
 # Past Delivery Data directory name
-DIRECTORY_PATH: PastDeliveryData
-COMBINED_SHEET_NAME: combined_sheet
+DIRECTORY_PATH: 
+    past_delivery_data: PastDeliveryData
+    consumable_levels_data: ConsumableLevelsData
+COMBINED_SHEET_NAME: 
+    past_delivery: combined_past_delivery_sheet
+    consumable_levels: combined_consumable_levels_sheet
+
 SHEET_FIRST_ROW:
-  - serial
-  - model
-  - HP_case_id
-  - company_name
-  - order_date
-  - arrive_date
-  - goods_receiver_name
-  - address
-  - goods_receiver_phone
-  - goods_name
-  - quantity
-  - remark
-  - goods_type
-  - unamed
+    past_delivery_data:
+        - serial
+        - model
+        - HP_case_id
+        - company_name
+        - order_date
+        - arrive_date
+        - goods_receiver_name
+        - address
+        - goods_receiver_phone
+        - goods_name
+        - quantity
+        - remark
+        - goods_type
+        - unamed
+    consumable_levels_data:
+        - Report Content DateTime
+        - Customer Name
+        - Country
+        - Region
+        - Site
+        - Building
+        - Level
+        - Product Model Name
+        - Asset Number
+        - Serial Number
+        - Usage Count Date
+        - Black Level
+        - Cyan Level
+        - Magenta Level
+        - Yellow Level
+        - Light Cyan Level
+        - Light Magenta Level
+        - Tri-Color Level
+        - Bonding Agent Level
+        - Staple Level
+        - Staple Second Level
+        - Staple Third Level
+        - Cyan Drum Level
+        - Yellow Drum Level
+        - Magenta Drum Level
+        - Black Drum Level
+        - Drum Kit Level
+        - Transfer Kit Level
+        - Fuser Kit Level
+        - Cleaning Kit Level
+        - Maintenance Combo Kit Level
+        - Document Feeder Kit Level
+        - Roller Level
+        - Grey Level
+        - Light Grey Level
+        - Photo Black Level
+        - Matte Black Level
+        - Red Level
+        - Green Level
+        - Blue Level
+        - Gloss Enhancer Level
+        - Pen Wipe Level
+        - Collection Unit Level
+        - Black Developer Maintenance Level
+        - Cyan Developer Maintenance Level
+        - Magenta Developer Maintenance Level
+        - Yellow Developer Maintenance Level
+
 DB_NAME: database.db
