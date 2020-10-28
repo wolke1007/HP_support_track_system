@@ -1,4 +1,19 @@
 # Past Delivery Data directory name
 DIRECTORY_PATH: PastDeliveryData
 COMBINED_SHEET_NAME: combined_sheet
+SHEET_FIRST_ROW:
+  - serial
+  - model
+  - HP_case_id
+  - company_name
+  - order_date
+  - arrive_date
+  - goods_receiver_name
+  - address
+  - goods_receiver_phone
+  - goods_name
+  - quantity
+  - remark
+  - goods_type
+  - unamed
 DB_NAME: database.db

@@ -155,7 +155,7 @@ def validate_config(config):
 #                    'pages': pages})
 #     queue.join()
 #     print("================= End of crawling =================")
-def past_delivery_data_to_excel(directory_path, combined_sheet_name):
+def past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, sheet_first_row:list):
     """
     經由過去的 60 天 mail 內容整理出已經配送過且最新的資料
     例如: 
@@ -173,7 +173,7 @@ def past_delivery_data_to_excel(directory_path, combined_sheet_name):
         input("[ERROR] directory {} not found!\n"
               "press Enter key to close this window...".format(directory_path))
         exit(1)
-    is_first_line_filled = False
+    combined_sheet.active.append((cell for cell in sheet_first_row))
     for file_name in os.listdir(directory_path):
         if(file_name == ".DS_Store"):
             continue  # 跳過這種自動產生的檔案
@@ -183,12 +183,8 @@ def past_delivery_data_to_excel(directory_path, combined_sheet_name):
         for row in sheet.rows:
             if(row[0].value == None):  # 如果該行為空則略過
                 row_cnt+=1
-                pass
-            elif(row[0].value == "序号" and is_first_line_filled is False):  # 如果判斷為第一列的title則要看是否已經有了就不在加入
-                combined_sheet.active.append((cell.value for cell in row))
-                is_first_line_filled = True
-                row_cnt+=1
-            elif(is_first_line_filled and row_cnt == 0):
+                continue
+            elif(row[0].value == "序号"):  # 如果判斷為第一列的title則要看是否已經有了就不在加入
                 row_cnt+=1
                 continue
             else:
@@ -208,9 +204,10 @@ if __name__ == '__main__':
     validate_config(config)
     DIRECTORY_PATH = config.get('DIRECTORY_PATH')
     COMBINED_SHEET_NAME = config.get('COMBINED_SHEET_NAME')
+    SHEET_FIRST_ROW = config.get('SHEET_FIRST_ROW')
     DB_NAME = config.get('DB_NAME')
-    # past_delivery_data_to_excel(DIRECTORY_PATH, COMBINED_SHEET_NAME)
-    # past_delivery_data = pd.read_excel(COMBINED_SHEET_NAME + ".xlsx",
-    #                                     sheet_name='Sheet',
-    #                                     header=0)
-    # excel_to_sqlite(past_delivery_data)
+    past_delivery_data_to_excel(DIRECTORY_PATH, COMBINED_SHEET_NAME, SHEET_FIRST_ROW)
+    excel_file = pd.read_excel(COMBINED_SHEET_NAME + ".xlsx",
+                                        sheet_name='Sheet',
+                                        header=0)
+    excel_to_sqlite(excel_file)
