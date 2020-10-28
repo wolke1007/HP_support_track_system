@@ -68,3 +68,11 @@ CREATE TABLE consumable_levels (
     `Magenta Developer Maintenance Level` INTEGER,
     `Yellow Developer Maintenance Level` INTEGER
 )
+
+select *, DATE(substr(`Report Content DateTime`, 7, 4) ||
+	'-' ||
+	substr(`Report Content DateTime`, 1, 2) ||
+	'-' ||
+	substr(`Report Content DateTime`, 4, 2)
+	)  as 'datetime'
+from consumable_levels where datetime < '2020-10-28'
