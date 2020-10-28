@@ -101,15 +101,16 @@ def consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str,
         row_cnt = 0
         report_content_date = 0
         for row in sheet.rows:
-            if(row[0].value == None or row_cnt == 0):  # 如果該行為空或第一列則略過
+            if(row[0].value == None or row_cnt == 0 or row_cnt == 2):  
+                # 如果該行為空略過
+                # 第一列是產 report 的時間，不需要故略過
+                # 第三列是 column header，不需要故略過
                 row_cnt+=1
-                continue
             elif(row_cnt == 1):  # 第二列需要取時間
                 row_cnt+=1
                 report_content_date = row[1].value
-                print("debug report_content_date: " + str(report_content_date))
-                continue
             else:
+                row_cnt+=1
                 combined_sheet.active.append((report_content_date,) + (tuple)(cell.value for cell in row))
     combined_sheet.save(combined_sheet_name + ".xlsx")
 
