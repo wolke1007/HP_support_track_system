@@ -64,13 +64,42 @@ CREATE TABLE consumable_levels (
     `Yellow Developer Maintenance Level` INTEGER
 )
 
+# 紀錄各設備最後派送狀態
+CREATE TABLE deliver_status (
+    `Last Deliver Date` TEXT,
+    `Customer Name` TEXT,
+    `Site` TEXT,
+    `Building` TEXT,
+    `Level` TEXT,
+    `Product Model Name` TEXT,
+    `Asset Number` TEXT,
+    `Serial Number` TEXT,
+    `Usage Count Date` TEXT,
+    `Black Level` INTEGER,
+    `Cyan Level` INTEGER,
+    `Magenta Level` INTEGER,
+    `Yellow Level` INTEGER,
+    `Cyan Drum Level` INTEGER,
+    `Yellow Drum Level` INTEGER,
+    `Magenta Drum Level` INTEGER,
+    `Black Drum Level` INTEGER,
+    `Drum Kit Level` INTEGER,
+    `Transfer Kit Level` INTEGER,
+    `Fuser Kit Level` INTEGER,
+    `Cleaning Kit Level` INTEGER,
+    `Maintenance Combo Kit Level` INTEGER,
+    `Document Feeder Kit Level` INTEGER,
+    `Roller Level` INTEGER
+)
+
+# 昨天的紀錄
 select *, DATE(substr(`Report Content DateTime`, 7, 4) ||
 	'-' ||
 	substr(`Report Content DateTime`, 1, 2) ||
 	'-' ||
 	substr(`Report Content DateTime`, 4, 2)
 	)  as 'datetime'
-from consumable_levels where datetime < '2020-10-28'
+from consumable_levels where datetime = DATE('NOW','-1 DAY')
 
 
 # 選出所有 2020-10-28 以前所有過去曾經有數值的紀錄
@@ -120,3 +149,7 @@ or `Black Developer Maintenance Level` > -1
 or `Cyan Developer Maintenance Level` > -1
 or `Magenta Developer Maintenance Level` > -1
 or `Yellow Developer Maintenance Level` > -1
+
+
+
+
