@@ -1,9 +1,5 @@
-excel title:
-serial	model	HP_case_id	company_name	order_date	arrive_date	goods_receiver_name	address	goods_receiver_phone	goods_name	quantity	remark	goods_type
-
-create table command:
+# create table command
 CREATE TABLE past_delivery_data (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, 
     serial INTEGER, 
     model TEXT, 
     HP_case_id TEXT, 
@@ -19,7 +15,6 @@ CREATE TABLE past_delivery_data (
 )
 
 CREATE TABLE consumable_levels (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
     `Report Content DateTime` TEXT,
     `Customer Name` TEXT,
     `Country` TEXT,
@@ -76,3 +71,52 @@ select *, DATE(substr(`Report Content DateTime`, 7, 4) ||
 	substr(`Report Content DateTime`, 4, 2)
 	)  as 'datetime'
 from consumable_levels where datetime < '2020-10-28'
+
+
+# 選出所有 2020-10-28 以前所有過去曾經有數值的紀錄
+select *, DATE(substr(`Report Content DateTime`, 7, 4) ||
+	'-' ||
+	substr(`Report Content DateTime`, 1, 2) ||
+	'-' ||
+	substr(`Report Content DateTime`, 4, 2)
+	)  as 'datetime'
+from 
+	consumable_levels 
+where 
+	datetime < '2020-10-28' 
+and `Black Level` > -1
+or `Cyan Level` > -1
+or `Magenta Level` > -1
+or `Yellow Level` > -1
+or `Light Cyan Level` > -1
+or `Light Magenta Level` > -1
+or `Tri-Color Level` > -1
+or `Bonding Agent Level` > -1
+or `Staple Level` > -1
+or `Staple Second Level` > -1
+or `Staple Third Level` > -1
+or `Cyan Drum Level` > -1
+or `Yellow Drum Level` > -1
+or `Magenta Drum Level` > -1
+or `Black Drum Level` > -1
+or `Drum Kit Level` > -1
+or `Transfer Kit Level` > -1
+or `Fuser Kit Level` > -1
+or `Cleaning Kit Level` > -1
+or `Maintenance Combo Kit Level` > -1
+or `Document Feeder Kit Level` > -1
+or `Roller Level` > -1
+or `Grey Level` > -1
+or `Light Grey Level` > -1
+or `Photo Black Level` > -1
+or `Matte Black Level` > -1
+or `Red Level` > -1
+or `Green Level` > -1
+or `Blue Level` > -1
+or `Gloss Enhancer Level` > -1
+or `Pen Wipe Level` > -1
+or `Collection Unit Level` > -1
+or `Black Developer Maintenance Level` > -1
+or `Cyan Developer Maintenance Level` > -1
+or `Magenta Developer Maintenance Level` > -1
+or `Yellow Developer Maintenance Level` > -1
