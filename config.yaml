@@ -1,3 +1,4 @@
 # Past Delivery Data directory name
 DIRECTORY_PATH: PastDeliveryData
 COMBINED_SHEET_NAME: combined_sheet
+DB_NAME: database.db

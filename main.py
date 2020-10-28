@@ -1,6 +1,5 @@
 # coding=UTF-8
 
-import requests
 import yaml
 from datetime import datetime
 import csv
@@ -9,6 +8,8 @@ import os
 from threading import Thread
 from queue import Queue
 import openpyxl
+import pandas as pd
+import sqlite3
 
 
 def load_config():
@@ -154,7 +155,7 @@ def validate_config(config):
 #                    'pages': pages})
 #     queue.join()
 #     print("================= End of crawling =================")
-def gen_base_data(directory_path, combined_sheet_name):
+def past_delivery_data_to_excel(directory_path, combined_sheet_name):
     """
     經由過去的 60 天 mail 內容整理出已經配送過且最新的資料
     例如: 
@@ -174,14 +175,16 @@ def gen_base_data(directory_path, combined_sheet_name):
         exit(1)
     is_first_line_filled = False
     for file_name in os.listdir(directory_path):
+        if(file_name == ".DS_Store"):
+            continue  # 跳過這種自動產生的檔案
         read_file = openpyxl.load_workbook(os.path.join(directory_path, file_name))
         sheet = read_file.active
         row_cnt = 0
         for row in sheet.rows:
-            if(row[0].value == None):
+            if(row[0].value == None):  # 如果該行為空則略過
                 row_cnt+=1
                 pass
-            elif(row[0].value == "序号" and is_first_line_filled is False):
+            elif(row[0].value == "序号" and is_first_line_filled is False):  # 如果判斷為第一列的title則要看是否已經有了就不在加入
                 combined_sheet.active.append((cell.value for cell in row))
                 is_first_line_filled = True
                 row_cnt+=1
@@ -191,12 +194,23 @@ def gen_base_data(directory_path, combined_sheet_name):
             else:
                 combined_sheet.active.append((cell.value for cell in row))
     combined_sheet.save(combined_sheet_name + ".xlsx")
-    #TODO 還需要做: 
-    #  1. 保留最新的就好，舊的刪掉
+
+def excel_to_sqlite(excel):
+    """
+    將通整好的 excel 匯入至 SQLite 中
+    """
+    db_conn = sqlite3.connect(DB_NAME)
+    c = db_conn.cursor()
+    excel.to_sql('past_delivery_data', db_conn, if_exists='append', index=False)
 
 if __name__ == '__main__':
     config = load_config()
     validate_config(config)
     DIRECTORY_PATH = config.get('DIRECTORY_PATH')
     COMBINED_SHEET_NAME = config.get('COMBINED_SHEET_NAME')
-    gen_base_data(DIRECTORY_PATH, COMBINED_SHEET_NAME)
+    DB_NAME = config.get('DB_NAME')
+    # past_delivery_data_to_excel(DIRECTORY_PATH, COMBINED_SHEET_NAME)
+    # past_delivery_data = pd.read_excel(COMBINED_SHEET_NAME + ".xlsx",
+    #                                     sheet_name='Sheet',
+    #                                     header=0)
+    # excel_to_sqlite(past_delivery_data)
