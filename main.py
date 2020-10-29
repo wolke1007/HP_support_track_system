@@ -6,6 +6,7 @@ import csv
 import subprocess
 import os
 import openpyxl
+from zipfile import BadZipfile
 import pandas as pd
 import sqlite3
 
@@ -55,7 +56,12 @@ def past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, she
     for file_name in os.listdir(directory_path):
         if(file_name == ".DS_Store"):
             continue  # 跳過這種自動產生的檔案
-        read_file = openpyxl.load_workbook(os.path.join(directory_path, file_name))
+        try:
+            read_file = openpyxl.load_workbook(os.path.join(directory_path, file_name))
+        except BadZipfile:
+            input("[ERROR] file {file_name} still open, close it first!\n"
+              "press Enter key to close this window...".format(file_name=file_name))
+            exit(1)
         sheet = read_file.active
         row_cnt = 0
         for row in sheet.rows:
@@ -86,7 +92,12 @@ def consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str,
     for file_name in os.listdir(directory_path):
         if(file_name == ".DS_Store"):
             continue  # 跳過這種自動產生的檔案
-        read_file = openpyxl.load_workbook(os.path.join(directory_path, file_name))
+        try:
+            read_file = openpyxl.load_workbook(os.path.join(directory_path, file_name))
+        except BadZipfile:
+            input("[ERROR] file {file_name} still open, close it first!\n"
+              "press Enter key to close this window...".format(file_name=file_name))
+            exit(1)
         sheet = read_file.active
         row_cnt = 0
         report_content_date = 0
