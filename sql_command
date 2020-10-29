@@ -188,3 +188,17 @@ from
 	from consumable_levels where datetime = Date('2020-10-28')) today
 where
 	yesterday.`Serial Number` = today.`Serial Number`
+
+# 用已知的 goods_type 去填補 past_delivery_data 中 goods_type 為 NULL 的欄位
+update
+	past_delivery_data
+set
+	goods_type = (
+	select
+		goods_type
+	from
+		past_delivery_data inside
+	where
+		past_delivery_data.goods_name = inside.goods_name)
+where
+	goods_type is null

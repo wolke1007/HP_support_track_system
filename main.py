@@ -133,21 +133,21 @@ if __name__ == '__main__':
     db_conn = sqlite3.connect(DB_NAME)
     c = db_conn.cursor()
 
-    # # 將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
-    # past_delivery_data_to_excel(PAST_DELIVERY_DATA_PATH, COMBINED_PAST_DELIVERY_SHEET_NAME, PAST_DELIVERY_SHEET_FIRST_ROW)
-    # excel_file = pd.read_excel(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx",
-    #                                     sheet_name='Sheet',
-    #                                     header=0)
-    # #將通整好的 excel 匯入至 SQLite 中
-    # excel_file.to_sql('past_delivery_data', db_conn, if_exists='append', index=False)
+    # 將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
+    past_delivery_data_to_excel(PAST_DELIVERY_DATA_PATH, COMBINED_PAST_DELIVERY_SHEET_NAME, PAST_DELIVERY_SHEET_FIRST_ROW)
+    excel_file = pd.read_excel(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx",
+                                        sheet_name='Sheet',
+                                        header=0)
+    #將通整好的 excel 匯入至 SQLite 中
+    excel_file.to_sql('past_delivery_data', db_conn, if_exists='append', index=False)
 
     # 將資料夾內客戶閥值資料整理成可匯入 SQLite 的格式
-    # consumable_levels_data_to_excel(CONSUMABLE_LEVELS_DATA_PATH, COMBINED_CONSUMABLE_LEVELS_SHEET_NAME, CONSUMABLE_LEVELS_SHEET_FIRST_ROW)
-    # excel_file = pd.read_excel(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx",
-    #                                     sheet_name='Sheet',
-    #                                     header=0)
-    # #將通整好的 excel 匯入至 SQLite 中
-    # excel_file.to_sql('consumable_levels', db_conn, if_exists='append', index=False)
+    consumable_levels_data_to_excel(CONSUMABLE_LEVELS_DATA_PATH, COMBINED_CONSUMABLE_LEVELS_SHEET_NAME, CONSUMABLE_LEVELS_SHEET_FIRST_ROW)
+    excel_file = pd.read_excel(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx",
+                                        sheet_name='Sheet',
+                                        header=0)
+    #將通整好的 excel 匯入至 SQLite 中
+    excel_file.to_sql('consumable_levels', db_conn, if_exists='append', index=False)
 
     set_deliver_status()
     
