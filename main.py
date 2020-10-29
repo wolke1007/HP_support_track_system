@@ -32,7 +32,8 @@ def validate_config(config):
         'DIRECTORY_PATH',
         'COMBINED_SHEET_NAME',
         'SHEET_FIRST_ROW',
-        'DB_NAME'
+        'DB_NAME',
+        'SQL_COMMANDS'
     ]
     for key in keys_should_be_exist:
         if key not in config.keys():
@@ -115,9 +116,71 @@ def consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str,
                 combined_sheet.active.append((report_content_date,) + (tuple)(cell.value for cell in row))
     combined_sheet.save(combined_sheet_name + ".xlsx")
 
-def set_deliver_status():
-    #TODO not implement yet
-    pass
+def set_deliver_status(db_conn):
+    """
+    檢查昨天與今天的墨水或耗材用量是否有減少
+    如果有減少，或是低於閥值則列出
+    並去檢查是否需要配送，若未配送過則設為 TRUE
+    """
+    goods_type_dict = {
+        2: "黑",
+        3: "藍",
+        4: "紅",
+        5: "藍鼓",
+        6: "黃鼓",
+        7: "紅鼓",
+        8: "黑鼓",
+        9: "drum kit",
+        10: "transfer kit",
+        11: "fuser kit",
+        12: "clean kit",
+        13: "maintainace combo kit",
+        14: "document feeder kit",
+        15: "roller"
+    }
+    cur = db_conn.cursor()
+    for row in cur.execute(SQL_COMMANDS.get('level_diff')):
+        # update deliver_status if need
+        cur2 = db_conn.cursor()
+        print(row)
+        check_need_refill = SQL_COMMANDS.get('check_need_refill').format(serial_number=row[0])
+        result = cur2.execute(check_need_refill).fetchone()
+        if (result is None):
+            print("此序號 {serial} 機器尚未有派送資料".format(serial=row[0]))
+            # 在 deliver_status 新增一欄，但只填上序號與品項(查 goods_type 的表)
+            index = 0
+            cur3 = db_conn.cursor()
+            for query_item in row:
+                if type(query_item) is int:  # 這邊姑且使用數字來判斷是否有值，其他的序號、日期、N/A 皆為文字
+                    goods_type = goods_type_dict.get(index)
+                    insert_deliver_status = SQL_COMMANDS.get('insert_deliver_status').format(serial_number=row[0], goods_type=goods_type)
+                    print(insert_deliver_status)
+                    print("insert deliver_status")
+                    cur3.execute(insert_deliver_status)
+                index+=1
+            db_conn.commit()
+            cur3.close()
+        else:
+            print("此序號 {serial} 機器已有派送資料".format(serial=row[0]))
+            print(result)
+            if (result[0] == True):
+                print("當前 need_refill 已經是 True，不進行動作")
+            if (result[0] == False):
+                print("當前 need_refill 為 False，將設為 True")
+                index = 0
+                cur3 = db_conn.cursor()
+                for query_item in row:
+                    if type(query_item) is int:  # 這邊姑且使用數字來判斷是否有值，其他的序號、日期、N/A 皆為文字
+                        goods_type = goods_type_dict.get(index)
+                        update_deliver_status = SQL_COMMANDS.get('update_deliver_status').format(serial_number=row[0], goods_type=goods_type)
+                        print(update_deliver_status)
+                        print("update deliver_status")
+                        cur3.execute(update_deliver_status)
+                    index+=1
+                db_conn.commit()
+                cur3.close()
+        cur2.close()
+    cur.close()
 
 if __name__ == '__main__':
     config = load_config()
@@ -129,27 +192,24 @@ if __name__ == '__main__':
     PAST_DELIVERY_SHEET_FIRST_ROW = config.get('SHEET_FIRST_ROW').get('past_delivery_data')
     CONSUMABLE_LEVELS_SHEET_FIRST_ROW = config.get('SHEET_FIRST_ROW').get('consumable_levels_data')
     DB_NAME = config.get('DB_NAME')
-
+    SQL_COMMANDS = config.get('SQL_COMMANDS')
     db_conn = sqlite3.connect(DB_NAME)
-    c = db_conn.cursor()
 
-    # 將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
-    past_delivery_data_to_excel(PAST_DELIVERY_DATA_PATH, COMBINED_PAST_DELIVERY_SHEET_NAME, PAST_DELIVERY_SHEET_FIRST_ROW)
-    excel_file = pd.read_excel(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx",
-                                        sheet_name='Sheet',
-                                        header=0)
-    #將通整好的 excel 匯入至 SQLite 中
-    excel_file.to_sql('past_delivery_data', db_conn, if_exists='append', index=False)
+    # # 將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
+    # past_delivery_data_to_excel(PAST_DELIVERY_DATA_PATH, COMBINED_PAST_DELIVERY_SHEET_NAME, PAST_DELIVERY_SHEET_FIRST_ROW)
+    # excel_file = pd.read_excel(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx",
+    #                                     sheet_name='Sheet',
+    #                                     header=0)
+    # #將通整好的 excel 匯入至 SQLite 中
+    # excel_file.to_sql('past_delivery_data', db_conn, if_exists='append', index=False)
 
-    # 將資料夾內客戶閥值資料整理成可匯入 SQLite 的格式
-    consumable_levels_data_to_excel(CONSUMABLE_LEVELS_DATA_PATH, COMBINED_CONSUMABLE_LEVELS_SHEET_NAME, CONSUMABLE_LEVELS_SHEET_FIRST_ROW)
-    excel_file = pd.read_excel(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx",
-                                        sheet_name='Sheet',
-                                        header=0)
-    #將通整好的 excel 匯入至 SQLite 中
-    excel_file.to_sql('consumable_levels', db_conn, if_exists='append', index=False)
+    # # 將資料夾內客戶閥值資料整理成可匯入 SQLite 的格式
+    # consumable_levels_data_to_excel(CONSUMABLE_LEVELS_DATA_PATH, COMBINED_CONSUMABLE_LEVELS_SHEET_NAME, CONSUMABLE_LEVELS_SHEET_FIRST_ROW)
+    # excel_file = pd.read_excel(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx",
+    #                                     sheet_name='Sheet',
+    #                                     header=0)
+    # #將通整好的 excel 匯入至 SQLite 中
+    # excel_file.to_sql('consumable_levels', db_conn, if_exists='append', index=False)
+    set_deliver_status(db_conn)
 
-    set_deliver_status()
-    
-    c.close()
     db_conn.close()

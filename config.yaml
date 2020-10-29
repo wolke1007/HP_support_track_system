@@ -72,3 +72,9 @@ SHEET_FIRST_ROW:
         - Yellow Developer Maintenance Level
 
 DB_NAME: database.db
+
+SQL_COMMANDS:
+    level_diff: select * from level_diff
+    check_need_refill: select need_refill from deliver_status where serial_number = '{serial_number}'
+    insert_deliver_status: insert into deliver_status (serial_number, goods_type) values ('{serial_number}', '{goods_type}')
+    update_deliver_status: update deliver_status SET need_refill = 1 where serial_number = '{serial_number}' and goods_type = '{goods_type}'
