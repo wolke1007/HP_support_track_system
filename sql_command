@@ -226,3 +226,21 @@ order by
 	last_deliver_date
 desc
 limit 1
+
+# 挑出所有曾經寄送過的資訊，且同一機器同一品項為取最新一筆，將這些寫進 deliver_status 中並設 status 為 FALSE 表示送過了不需要寄送
+INSERT INTO
+deliver_status 
+SELECT
+	DATE(substr(past_delivery_data.arrive_date, 1, 10)),	
+	past_delivery_data.serial,
+	past_delivery_data.goods_name,
+	past_delivery_data.goods_type,
+	FALSE status
+FROM 
+	past_delivery_data
+inner join consumable_levels
+on consumable_levels."Serial Number" = past_delivery_data.serial
+GROUP BY 
+	past_delivery_data.serial,
+	past_delivery_data.goods_name
+HAVING MAX(past_delivery_data.arrive_date)
