@@ -112,7 +112,9 @@ select *, DATE(substr(`Report Content DateTime`, 7, 4) ||
 	)  as 'datetime'
 from consumable_levels where datetime = DATE('NOW','-1 DAY')
 
-# [嘗試][有效能問題] 撈出比前一天(範例中以2020-10-28為基準，往前算一天) level 要小或低於閥值(範例中為30)的顏色，若數值沒變動則設為 N/A
+# [嘗試][做成VIEW][可能有效能問題] 
+# 撈出比前一天(範例中以2020-10-28為基準，往前算一天) level 要小(表示有使用)或低於閥值(範例中為30)的顏色，若數值沒變動則設為 N/A
+CREATE VIEW level_diff AS 
 select
 	*
 from
@@ -218,7 +220,7 @@ from
 		where
 			datetime = Date('2020-10-28')) today
 	where
-		yesterday.`Serial Number` = today.`Serial Number` ) diff
+		yesterday.`Serial Number` = today.`Serial Number` )
 
 
 # 用已知的 goods_type 去填補 past_delivery_data 中 goods_type 為 NULL 的欄位
@@ -258,7 +260,7 @@ order by
 desc
 limit 1
 
-# 嘗試將過去有的資訊剔除，只找出 past_delivery 中新出現的資料，之後需要 insert or replace 至 deliver_status 中
+# 將過去有的資訊剔除，只找出 past_delivery 中新出現的資料，之後需要 insert or replace 至 deliver_status 中，且將 need_refill 設為 FALSE
 REPLACE INTO
 deliver_status
 select
