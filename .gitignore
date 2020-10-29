@@ -3,3 +3,5 @@ database.db
 dist
 build
 __pycache__
+
+*.sqbpro
