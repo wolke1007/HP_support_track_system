@@ -14,6 +14,15 @@ CREATE TABLE past_delivery_data (
     remark TEXT, goods_type TEXT, unamed TEXT
 )
 
+CREATE TABLE deliver_status (
+    last_deliver_date TEXT,
+    serial_number TEXT,
+    goods_name TEXT,
+    goods_type TEXT,
+    need_refill TEXT,
+    PRIMARY KEY(serial_number, goods_name, goods_type)
+)
+
 CREATE TABLE consumable_levels (
     `Report Content DateTime` TEXT,
     `Customer Name` TEXT,
