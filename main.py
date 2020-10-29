@@ -151,5 +151,5 @@ if __name__ == '__main__':
 
     set_deliver_status()
     
-    db_conn.close()
     c.close()
+    db_conn.close()
