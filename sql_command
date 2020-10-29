@@ -202,3 +202,18 @@ set
 		past_delivery_data.goods_name = inside.goods_name)
 where
 	goods_type is null
+
+# 尋找某個序號的最後配送時間及配送的產品
+select
+	serial,
+	Date(substr(arrive_date , 1, 10)) last_deliver_date,
+	goods_name,
+	goods_type
+from
+	past_delivery_data
+where
+	serial = 'AABBCC'
+order by
+	last_deliver_date
+desc
+limit 1
