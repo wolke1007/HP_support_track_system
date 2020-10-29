@@ -61,7 +61,8 @@ CREATE TABLE consumable_levels (
     `Black Developer Maintenance Level` INTEGER,
     `Cyan Developer Maintenance Level` INTEGER,
     `Magenta Developer Maintenance Level` INTEGER,
-    `Yellow Developer Maintenance Level` INTEGER
+    `Yellow Developer Maintenance Level` INTEGER,
+    PRIMARY KEY(`Report Content DateTime`, `Serial Number`)
 )
 
 # 紀錄各設備最後派送狀態
@@ -89,7 +90,8 @@ CREATE TABLE deliver_status (
     `Cleaning Kit Level` INTEGER,
     `Maintenance Combo Kit Level` INTEGER,
     `Document Feeder Kit Level` INTEGER,
-    `Roller Level` INTEGER
+    `Roller Level` INTEGER,
+    PRIMARY KEY(`Serial Number`)
 )
 
 # 昨天的紀錄
