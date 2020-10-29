@@ -19,7 +19,7 @@ CREATE TABLE deliver_status (
     serial_number TEXT,
     goods_name TEXT,
     goods_type TEXT,
-    need_refill TEXT,
+    need_refill TEXT DEFAULT FALSE,
     PRIMARY KEY(serial_number, goods_name, goods_type)
 )
 
@@ -112,91 +112,114 @@ select *, DATE(substr(`Report Content DateTime`, 7, 4) ||
 	)  as 'datetime'
 from consumable_levels where datetime = DATE('NOW','-1 DAY')
 
-# [嘗試][有效能問題] 撈出比前一天 level 要小的顏色，若數值沒變動則設為 N/A
-select DISTINCT 
-	today.`Serial Number`,
-	today.datetime,
-    case
-    when yesterday.`Black Level` - today.`Black Level` >= 1
-    	then today.`Black Level`
-    	else 'N/A'
-    END `Black Level`,
-    case
-    when yesterday.`Cyan Level` - today.`Cyan Level` >= 1
-    	then today.`Cyan Level`
-    	else 'N/A'
-    END `Cyan Level`,
-    case
-    when yesterday.`Magenta Level` - today.`Magenta Level` >= 1
-    	then today.`Magenta Level`
-    	else 'N/A'
-    END `Magenta Level`,
-    case
-    when yesterday.`Cyan Drum Level` - today.`Cyan Drum Level` >= 1
-    	then today.`Cyan Drum Level`
-    	else 'N/A'
-    END `Cyan Drum Level`,
-    case
-    when yesterday.`Yellow Drum Level` - today.`Yellow Drum Level` >= 1
-    	then today.`Yellow Drum Level`
-    	else 'N/A'
-    END `Yellow Drum Level`,
-    case
-    when yesterday.`Magenta Drum Level` - today.`Magenta Drum Level` >= 1
-    	then today.`Magenta Drum Level`
-    	else 'N/A'
-    END `Magenta Drum Level`,
-    case
-    when yesterday.`Black Drum Level` - today.`Black Drum Level` >= 1
-    	then today.`Black Drum Level`
-    	else 'N/A'
-    END `Black Drum Level`,
-    case
-    when yesterday.`Drum Kit Level` - today.`Drum Kit Level` >= 1
-    	then today.`Drum Kit Level`
-    	else 'N/A'
-    END `Drum Kit Level`,
-    case
-    when yesterday.`Transfer Kit Level` - today.`Transfer Kit Level` >= 1
-    	then today.`Transfer Kit Level`
-    	else 'N/A'
-    END `Transfer Kit Level`,
-    case
-    when yesterday.`Fuser Kit Level` - today.`Fuser Kit Level` >= 1
-    	then today.`Fuser Kit Level`
-    	else 'N/A'
-    END `Fuser Kit Level`,
-    case
-    when yesterday.`Cleaning Kit Level` - today.`Cleaning Kit Level` >= 1
-    	then today.`Cleaning Kit Level`
-    	else 'N/A'
-    END `Cleaning Kit Level`,
-    case
-    when yesterday.`Maintenance Combo Kit Level` - today.`Maintenance Combo Kit Level` >= 1
-    	then today.`Maintenance Combo Kit Level`
-    	else 'N/A'
-    END `Maintenance Combo Kit Level`,
-    case
-    when yesterday.`Document Feeder Kit Level` - today.`Document Feeder Kit Level` >= 1
-    	then today.`Document Feeder Kit Level`
-    	else 'N/A'
-    END `Document Feeder Kit Level`,
-    case
-    when yesterday.`Roller Level` - today.`Roller Level` >= 1
-    	then today.`Roller Level`
-    	else 'N/A'
-    END `Roller Level`
+# [嘗試][有效能問題] 撈出比前一天(範例中以2020-10-28為基準，往前算一天) level 要小或低於閥值(範例中為30)的顏色，若數值沒變動則設為 N/A
+select
+	*
 from
-	(select DATE(substr(`Report Content DateTime`, 7, 4) || '-' ||
-	substr(`Report Content DateTime`, 1, 2) || '-' ||
-	substr(`Report Content DateTime`, 4, 2) ) datetime, * 
-	from consumable_levels where datetime = Date('2020-10-28', '-1 day')) yesterday,
-	(select DATE(substr(`Report Content DateTime`, 7, 4) || '-' ||
-	substr(`Report Content DateTime`, 1, 2) || '-' ||
-	substr(`Report Content DateTime`, 4, 2) ) datetime, * 
-	from consumable_levels where datetime = Date('2020-10-28')) today
-where
-	yesterday.`Serial Number` = today.`Serial Number`
+	(
+	select
+		DISTINCT today.`Serial Number`, today.datetime,
+		case
+			when yesterday.`Black Level` - today.`Black Level` >= 1 
+            or today.`Black Level` < 30
+            then today.`Black Level`
+			else 'N/A'
+		END `Black Level`,
+		case
+			when yesterday.`Cyan Level` - today.`Cyan Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Cyan Level`
+			else 'N/A'
+		END `Cyan Level`,
+		case
+			when yesterday.`Magenta Level` - today.`Magenta Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Magenta Level`
+			else 'N/A'
+		END `Magenta Level`,
+		case
+			when yesterday.`Cyan Drum Level` - today.`Cyan Drum Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Cyan Drum Level`
+			else 'N/A'
+		END `Cyan Drum Level`,
+		case
+			when yesterday.`Yellow Drum Level` - today.`Yellow Drum Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Yellow Drum Level`
+			else 'N/A'
+		END `Yellow Drum Level`,
+		case
+			when yesterday.`Magenta Drum Level` - today.`Magenta Drum Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Magenta Drum Level`
+			else 'N/A'
+		END `Magenta Drum Level`,
+		case
+			when yesterday.`Black Drum Level` - today.`Black Drum Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Black Drum Level`
+			else 'N/A'
+		END `Black Drum Level`,
+		case
+			when yesterday.`Drum Kit Level` - today.`Drum Kit Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Drum Kit Level`
+			else 'N/A'
+		END `Drum Kit Level`,
+		case
+			when yesterday.`Transfer Kit Level` - today.`Transfer Kit Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Transfer Kit Level`
+			else 'N/A'
+		END `Transfer Kit Level`,
+		case
+			when yesterday.`Fuser Kit Level` - today.`Fuser Kit Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Fuser Kit Level`
+			else 'N/A'
+		END `Fuser Kit Level`,
+		case
+			when yesterday.`Cleaning Kit Level` - today.`Cleaning Kit Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Cleaning Kit Level`
+			else 'N/A'
+		END `Cleaning Kit Level`,
+		case
+			when yesterday.`Maintenance Combo Kit Level` - today.`Maintenance Combo Kit Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Maintenance Combo Kit Level`
+			else 'N/A'
+		END `Maintenance Combo Kit Level`,
+		case
+			when yesterday.`Document Feeder Kit Level` - today.`Document Feeder Kit Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Document Feeder Kit Level`
+			else 'N/A'
+		END `Document Feeder Kit Level`,
+		case
+			when yesterday.`Roller Level` - today.`Roller Level` >= 1 
+            or today.`Cyan Level` < 30
+            then today.`Roller Level`
+			else 'N/A'
+		END `Roller Level`
+	from
+		(
+		select
+			DATE(substr(`Report Content DateTime`, 7, 4) || '-' || substr(`Report Content DateTime`, 1, 2) || '-' || substr(`Report Content DateTime`, 4, 2) ) datetime, *
+		from
+			consumable_levels
+		where
+			datetime = Date('2020-10-28', '-1 day')) yesterday, (
+		select
+			DATE(substr(`Report Content DateTime`, 7, 4) || '-' || substr(`Report Content DateTime`, 1, 2) || '-' || substr(`Report Content DateTime`, 4, 2) ) datetime, *
+		from
+			consumable_levels
+		where
+			datetime = Date('2020-10-28')) today
+	where
+		yesterday.`Serial Number` = today.`Serial Number` ) diff
+
 
 # 用已知的 goods_type 去填補 past_delivery_data 中 goods_type 為 NULL 的欄位
 update
@@ -227,20 +250,23 @@ order by
 desc
 limit 1
 
-# 挑出所有曾經寄送過的資訊，且同一機器同一品項為取最新一筆，將這些寫進 deliver_status 中並設 status 為 FALSE 表示送過了不需要寄送
-INSERT INTO
-deliver_status 
-SELECT
-	DATE(substr(past_delivery_data.arrive_date, 1, 10)),	
-	past_delivery_data.serial,
-	past_delivery_data.goods_name,
-	past_delivery_data.goods_type,
-	FALSE status
-FROM 
-	past_delivery_data
-inner join consumable_levels
-on consumable_levels."Serial Number" = past_delivery_data.serial
-GROUP BY 
-	past_delivery_data.serial,
-	past_delivery_data.goods_name
-HAVING MAX(past_delivery_data.arrive_date)
+# 嘗試將過去有的資訊剔除，只找出 past_delivery 中新出現的資料，之後需要 insert or replace 至 deliver_status 中
+select
+	past_delivery.last_deliver_date,
+	past_delivery.serial,
+	past_delivery.goods_name
+from
+	(
+	SELECT
+		DATE(substr(past_delivery_data.arrive_date, 1, 10)) last_deliver_date, past_delivery_data.serial, past_delivery_data.goods_name, past_delivery_data.goods_type, FALSE status
+	FROM
+		past_delivery_data
+	GROUP BY
+		past_delivery_data.serial, past_delivery_data.goods_name
+	HAVING
+		MAX(past_delivery_data.arrive_date) ) past_delivery
+left join deliver_status on
+	deliver_status.serial_number = past_delivery.serial
+	and deliver_status.goods_name = past_delivery.goods_name
+	and deliver_status.last_deliver_date = past_delivery.last_deliver_date
+where past_delivery.goods_name is null
