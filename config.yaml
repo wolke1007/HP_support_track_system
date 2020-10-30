@@ -294,6 +294,5 @@ SQL_COMMANDS:
                 goods_name = past_delivery_data.goods_name )
         where
             goods_type is null"
-                
-                
+    delete_view_level_diff: DROP VIEW IF EXISTS level_diff;
                 

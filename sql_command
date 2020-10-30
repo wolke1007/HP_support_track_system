@@ -271,3 +271,6 @@ EXCEPT
 		goods_type,
 		FALSE status
 	from deliver_status
+
+# 刪除 VIEW
+DROP VIEW IF EXISTS level_diff;

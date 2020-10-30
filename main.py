@@ -204,8 +204,16 @@ if __name__ == '__main__':
     DB_NAME = config.get('DB_NAME')
     SQL_COMMANDS = config.get('SQL_COMMANDS')
 
-    def apply_settings(arg):
+    def apply_settings(db_conn):
         print("1")
+        #TODO 刪除 view 並以當前的 threshold 重新新增 view
+        cur = db_conn.cursor()
+        delete_view_command = SQL_COMMANDS.get('delete_view_level_diff').format(level_threshold=str(LEVEL_THRESHOLD))
+        create_view_command = SQL_COMMANDS.get('reset_db_commands').get('create_view_level_diff').format(level_threshold=str(LEVEL_THRESHOLD))
+        cur.execute(delete_view_command)
+        time.sleep(1)
+        cur.execute(create_view_command)
+        cur.close()
     
     def import_past_deliver(db_conn):
         print("beging import past devier data...")
