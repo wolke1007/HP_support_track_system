@@ -270,8 +270,9 @@ if __name__ == '__main__':
         get_need_refill_sheet(EXPORT_QUERY_COMMAND)
         print("end of deliver status")
     
-    def reset_db(arg):
+    def reset_db(db_conn):
         print("beging db reset...")
+        db_conn.close()
         remove(DB_NAME)
         f = open(DB_NAME, "a")
         f.close()
@@ -315,7 +316,7 @@ if __name__ == '__main__':
             print("exit program.")
             break
         db_conn = sqlite3.connect(DB_NAME)
-        func = function_list.get(choose, lambda: print("Invalid number!\n\n"))
+        func = function_list.get(choose, lambda x: print("Invalid number!\n\n"))
         func(db_conn)  # 執行選取的邏輯
         db_conn.close()
         
