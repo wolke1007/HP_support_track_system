@@ -1,3 +1,5 @@
+# 用量閥值
+LEVEL_THRESHOLD: 30
 # Past Delivery Data directory name
 DIRECTORY_PATH: 
     past_delivery_data: PastDeliveryData
@@ -78,3 +80,220 @@ SQL_COMMANDS:
     check_need_refill: select need_refill from deliver_status where serial_number = '{serial_number}'
     insert_deliver_status: insert into deliver_status (serial_number, goods_type) values ('{serial_number}', '{goods_type}')
     update_deliver_status: update deliver_status SET need_refill = 1 where serial_number = '{serial_number}' and goods_type = '{goods_type}'
+    reset_db_commands: 
+        create_table_past_delivery_data: "CREATE TABLE past_delivery_data (
+                    serial INTEGER, 
+                    model TEXT, 
+                    HP_case_id TEXT, 
+                    company_name TEXT,
+                    order_date INTEGER,
+                    arrive_date INTEGER,
+                    goods_receiver_name TEXT,
+                    address TEXT,
+                    goods_receiver_phone TEXT,
+                    goods_name TEXT,
+                    quantity INTEGER,
+                    remark TEXT, goods_type TEXT, unamed TEXT
+                );"
+        create_table_deliver_status: "CREATE TABLE deliver_status (
+                    last_deliver_date TEXT,
+                    serial_number TEXT,
+                    goods_name TEXT,
+                    goods_type TEXT,
+                    need_refill INTEGER DEFAULT 0,
+                    PRIMARY KEY(serial_number, goods_name, goods_type)
+                );"
+        create_table_consumable_levels: "CREATE TABLE consumable_levels (
+                    `Report Content DateTime` TEXT,
+                    `Customer Name` TEXT,
+                    `Country` TEXT,
+                    `Region` TEXT,
+                    `Site` TEXT,
+                    `Building` TEXT,
+                    `Level` INTEGER,
+                    `Product Model Name` TEXT,
+                    `Asset Number` TEXT,
+                    `Serial Number` TEXT,
+                    `Usage Count Date` TEXT,
+                    `Black Level` INTEGER,
+                    `Cyan Level` INTEGER,
+                    `Magenta Level` INTEGER,
+                    `Yellow Level` INTEGER,
+                    `Light Cyan Level` INTEGER,
+                    `Light Magenta Level` INTEGER,
+                    `Tri-Color Level` INTEGER,
+                    `Bonding Agent Level` INTEGER,
+                    `Staple Level` INTEGER,
+                    `Staple Second Level` INTEGER,
+                    `Staple Third Level` INTEGER,
+                    `Cyan Drum Level` INTEGER,
+                    `Yellow Drum Level` INTEGER,
+                    `Magenta Drum Level` INTEGER,
+                    `Black Drum Level` INTEGER,
+                    `Drum Kit Level` INTEGER,
+                    `Transfer Kit Level` INTEGER,
+                    `Fuser Kit Level` INTEGER,
+                    `Cleaning Kit Level` INTEGER,
+                    `Maintenance Combo Kit Level` INTEGER,
+                    `Document Feeder Kit Level` INTEGER,
+                    `Roller Level` INTEGER,
+                    `Grey Level` INTEGER,
+                    `Light Grey Level` INTEGER,
+                    `Photo Black Level` INTEGER,
+                    `Matte Black Level` INTEGER,
+                    `Red Level` INTEGER,
+                    `Green Level` INTEGER,
+                    `Blue Level` INTEGER,
+                    `Gloss Enhancer Level` INTEGER,
+                    `Pen Wipe Level` INTEGER,
+                    `Collection Unit Level` INTEGER,
+                    `Black Developer Maintenance Level` INTEGER,
+                    `Cyan Developer Maintenance Level` INTEGER,
+                    `Magenta Developer Maintenance Level` INTEGER,
+                    `Yellow Developer Maintenance Level` INTEGER,
+                    PRIMARY KEY(`Report Content DateTime`, `Serial Number`)
+                );"
+        create_view_level_diff: "CREATE VIEW level_diff AS 
+            select
+                *
+            from
+                (
+                select
+                    DISTINCT today.`Serial Number`, today.datetime,
+                    case
+                        when yesterday.`Black Level` - today.`Black Level` >= 1
+                        and today.`Black Level` <= {level_threshold} - 1 
+                        or yesterday.`Black Level` = 0
+                        then today.`Black Level`
+                        else 'N/A'
+                    END `Black Level`,
+                    case
+                        when yesterday.`Cyan Level` - today.`Cyan Level` >= 1 
+                        and today.`Cyan Level` <= {level_threshold} - 1
+                        or yesterday.`Cyan Level` = 0
+                        then today.`Cyan Level`
+                        else 'N/A'
+                    END `Cyan Level`,
+                    case
+                        when yesterday.`Magenta Level` - today.`Magenta Level` >= 1 
+                        and today.`Magenta Level` <= {level_threshold} - 1
+                        or yesterday.`Magenta Level` = 0
+                        then today.`Magenta Level`
+                        else 'N/A'
+                    END `Magenta Level`,
+                    case
+                        when yesterday.`Cyan Drum Level` - today.`Cyan Drum Level` >= 1 
+                        and today.`Cyan Drum Level` <= {level_threshold} - 1
+                        or yesterday.`Cyan Drum Level` = 0
+                        then today.`Cyan Drum Level`
+                        else 'N/A'
+                    END `Cyan Drum Level`,
+                    case
+                        when yesterday.`Yellow Drum Level` - today.`Yellow Drum Level` >= 1 
+                        and today.`Yellow Drum Level` <= {level_threshold} - 1
+                        or yesterday.`Yellow Drum Level` = 0
+                        then today.`Yellow Drum Level`
+                        else 'N/A'
+                    END `Yellow Drum Level`,
+                    case
+                        when yesterday.`Magenta Drum Level` - today.`Magenta Drum Level` >= 1 
+                        and today.`Magenta Drum Level` <= {level_threshold} - 1
+                        or yesterday.`Magenta Drum Level` = 0
+                        then today.`Magenta Drum Level`
+                        else 'N/A'
+                    END `Magenta Drum Level`,
+                    case
+                        when yesterday.`Black Drum Level` - today.`Black Drum Level` >= 1 
+                        and today.`Black Drum Level` <= {level_threshold} - 1
+                        or yesterday.`Black Drum Level` = 0
+                        then today.`Black Drum Level`
+                        else 'N/A'
+                    END `Black Drum Level`,
+                    case
+                        when yesterday.`Drum Kit Level` - today.`Drum Kit Level` >= 1 
+                        and today.`Drum Kit Level` <= {level_threshold} - 1
+                        or yesterday.`Drum Kit Level` = 0
+                        then today.`Drum Kit Level`
+                        else 'N/A'
+                    END `Drum Kit Level`,
+                    case
+                        when yesterday.`Transfer Kit Level` - today.`Transfer Kit Level` >= 1 
+                        and today.`Transfer Kit Level` <= {level_threshold} - 1
+                        or yesterday.`Transfer Kit Level` = 0
+                        then today.`Transfer Kit Level`
+                        else 'N/A'
+                    END `Transfer Kit Level`,
+                    case
+                        when yesterday.`Fuser Kit Level` - today.`Fuser Kit Level` >= 1 
+                        and today.`Fuser Kit Level` <= {level_threshold} - 1
+                        or yesterday.`Fuser Kit Level` = 0
+                        then today.`Fuser Kit Level`
+                        else 'N/A'
+                    END `Fuser Kit Level`,
+                    case
+                        when yesterday.`Cleaning Kit Level` - today.`Cleaning Kit Level` >= 1 
+                        and today.`Cleaning Kit Level` <= {level_threshold} - 1
+                        or yesterday.`Cleaning Kit Level` = 0
+                        then today.`Cleaning Kit Level`
+                        else 'N/A'
+                    END `Cleaning Kit Level`,
+                    case
+                        when yesterday.`Maintenance Combo Kit Level` - today.`Maintenance Combo Kit Level` >= 1 
+                        and today.`Maintenance Combo Kit Level` <= {level_threshold} - 1
+                        or yesterday.`Maintenance Combo Kit Level` = 0
+                        then today.`Maintenance Combo Kit Level`
+                        else 'N/A'
+                    END `Maintenance Combo Kit Level`,
+                    case
+                        when yesterday.`Document Feeder Kit Level` - today.`Document Feeder Kit Level` >= 1 
+                        and today.`Document Feeder Kit Level` <= {level_threshold} - 1
+                        or yesterday.`Document Feeder Kit Level` = 0
+                        then today.`Document Feeder Kit Level`
+                        else 'N/A'
+                    END `Document Feeder Kit Level`,
+                    case
+                        when yesterday.`Roller Level` - today.`Roller Level` >= 1 
+                        and today.`Roller Level` <= {level_threshold} - 1
+                        or yesterday.`Roller Level` = 0
+                        then today.`Roller Level`
+                        else 'N/A'
+                    END `Roller Level`
+                from
+                    (
+                    select
+                        DATE(substr(`Report Content DateTime`, 7, 4) || '-' || substr(`Report Content DateTime`, 1, 2) || '-' || substr(`Report Content DateTime`, 4, 2) ) datetime, *
+                    from
+                        consumable_levels
+                    where
+                        datetime = Date('NOW', '-1 day')) yesterday, (
+                    select
+                        DATE(substr(`Report Content DateTime`, 7, 4) || '-' || substr(`Report Content DateTime`, 1, 2) || '-' || substr(`Report Content DateTime`, 4, 2) ) datetime, *
+                    from
+                        consumable_levels
+                    where
+                        datetime = Date('NOW')) today
+                where
+                    yesterday.`Serial Number` = today.`Serial Number` )"
+    fill_known_goods_type: "update
+            past_delivery_data
+        set
+            goods_type = (
+            select
+                goods_type
+            from
+                (
+                select
+                    goods_type, goods_name
+                from
+                    past_delivery_data
+                where
+                    goods_type is not null
+                group by
+                    goods_name)
+            where
+                goods_name = past_delivery_data.goods_name )
+        where
+            goods_type is null"
+                
+                
+                

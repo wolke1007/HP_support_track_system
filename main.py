@@ -9,6 +9,7 @@ import openpyxl
 from zipfile import BadZipfile
 import pandas as pd
 import sqlite3
+import time
 
 
 def load_config():
@@ -193,6 +194,7 @@ def set_deliver_status(db_conn):
 if __name__ == '__main__':
     config = load_config()
     validate_config(config)
+    LEVEL_THRESHOLD = config.get('LEVEL_THRESHOLD')
     PAST_DELIVERY_DATA_PATH = config.get('DIRECTORY_PATH').get('past_delivery_data')
     CONSUMABLE_LEVELS_DATA_PATH = config.get('DIRECTORY_PATH').get('consumable_levels_data')
     COMBINED_PAST_DELIVERY_SHEET_NAME = config.get('COMBINED_SHEET_NAME').get('past_delivery')
@@ -201,23 +203,79 @@ if __name__ == '__main__':
     CONSUMABLE_LEVELS_SHEET_FIRST_ROW = config.get('SHEET_FIRST_ROW').get('consumable_levels_data')
     DB_NAME = config.get('DB_NAME')
     SQL_COMMANDS = config.get('SQL_COMMANDS')
-    db_conn = sqlite3.connect(DB_NAME)
 
-    # # 將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
-    # past_delivery_data_to_excel(PAST_DELIVERY_DATA_PATH, COMBINED_PAST_DELIVERY_SHEET_NAME, PAST_DELIVERY_SHEET_FIRST_ROW)
-    # excel_file = pd.read_excel(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx",
-    #                                     sheet_name='Sheet',
-    #                                     header=0)
-    # #將通整好的 excel 匯入至 SQLite 中
-    # excel_file.to_sql('past_delivery_data', db_conn, if_exists='append', index=False)
+    def apply_settings(arg):
+        print("1")
+    
+    def import_past_deliver(db_conn):
+        print("beging import past devier data...")
+        # 將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
+        past_delivery_data_to_excel(PAST_DELIVERY_DATA_PATH, COMBINED_PAST_DELIVERY_SHEET_NAME, PAST_DELIVERY_SHEET_FIRST_ROW)
+        excel_file = pd.read_excel(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx",
+                                            sheet_name='Sheet',
+                                            header=0)
+        #將通整好的 excel 匯入至 SQLite 中
+        excel_file.to_sql('past_delivery_data', db_conn, if_exists='append', index=False)
+        # 用已知的 goods_type 去填補 past_delivery_data 中 goods_type 為 NULL 的欄位
+        cur = db_conn.cursor()
+        sql_command = SQL_COMMANDS.get('fill_known_goods_type')
+        cur.execute(sql_command)
+        cur.close()
+        print("end of import past devier data...")
+    
+    def import_consumable_levels(db_conn):
+        print("beging import consumable levels data...")
+        # 將資料夾內客戶閥值資料整理成可匯入 SQLite 的格式
+        consumable_levels_data_to_excel(CONSUMABLE_LEVELS_DATA_PATH, COMBINED_CONSUMABLE_LEVELS_SHEET_NAME, CONSUMABLE_LEVELS_SHEET_FIRST_ROW)
+        excel_file = pd.read_excel(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx",
+                                            sheet_name='Sheet',
+                                            header=0)
+        #將通整好的 excel 匯入至 SQLite 中
+        excel_file.to_sql('consumable_levels', db_conn, if_exists='append', index=False)
+        print("end of  import consumable levels data...")
+    
+    def get_deliver_status(db_conn):
+        print("4")
+        set_deliver_status(db_conn)
+    
+    def reset_db(arg):
+        print("beging db reset...")
+        os.remove(DB_NAME)
+        f = open(DB_NAME, "a")
+        f.close()
+        new_db_conn = sqlite3.connect(DB_NAME)
+        cur = new_db_conn.cursor()
+        create_db_commands = SQL_COMMANDS.get('reset_db_commands')
+        for key in create_db_commands.keys():
+            sql_command = create_db_commands.get(key)
+            if (key == "create_view_level_diff"):
+                sql_command = create_db_commands.get(key).format(level_threshold=str(LEVEL_THRESHOLD))
+            cur.execute(sql_command)
+            time.sleep(1)
+        cur.close()
+        print("end of db reset...")
 
-    # # 將資料夾內客戶閥值資料整理成可匯入 SQLite 的格式
-    # consumable_levels_data_to_excel(CONSUMABLE_LEVELS_DATA_PATH, COMBINED_CONSUMABLE_LEVELS_SHEET_NAME, CONSUMABLE_LEVELS_SHEET_FIRST_ROW)
-    # excel_file = pd.read_excel(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx",
-    #                                     sheet_name='Sheet',
-    #                                     header=0)
-    # #將通整好的 excel 匯入至 SQLite 中
-    # excel_file.to_sql('consumable_levels', db_conn, if_exists='append', index=False)
-    set_deliver_status(db_conn)
+    function_list = {
+        "1": apply_settings,
+        "2": import_past_deliver,
+        "3": import_consumable_levels,
+        "4": get_deliver_status,
+        "5": reset_db  # delete all tables and views
+    }
 
-    db_conn.close()
+    while True:
+        choose = input("請輸入功能代號:\n"
+        "1. 套用新設定(閥值)\n"
+        "2. 匯入過去派送紀錄\n"
+        "3. 匯入目前設備用量清單\n"
+        "4. 取得應派送設備表單\n"
+        "5. 重設 DB 設定(!注意!資料將被清空)\n"
+        "6. 退出程式\n")
+        if choose == "6":
+            print("exit program.")
+            break
+        db_conn = sqlite3.connect(DB_NAME)
+        func = function_list.get(choose, lambda: print("Invalid number!\n\n"))
+        func(db_conn)  # 執行選取的邏輯
+        db_conn.close()
+        

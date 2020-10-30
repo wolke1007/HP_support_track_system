@@ -74,35 +74,6 @@ CREATE TABLE consumable_levels (
     PRIMARY KEY(`Report Content DateTime`, `Serial Number`)
 )
 
-# 紀錄各設備最後派送狀態
-CREATE TABLE deliver_status (
-    `Last Deliver Date` TEXT,
-    `Customer Name` TEXT,
-    `Site` TEXT,
-    `Building` TEXT,
-    `Level` TEXT,
-    `Product Model Name` TEXT,
-    `Asset Number` TEXT,
-    `Serial Number` TEXT,
-    `Usage Count Date` TEXT,
-    `Black Level` INTEGER,
-    `Cyan Level` INTEGER,
-    `Magenta Level` INTEGER,
-    `Yellow Level` INTEGER,
-    `Cyan Drum Level` INTEGER,
-    `Yellow Drum Level` INTEGER,
-    `Magenta Drum Level` INTEGER,
-    `Black Drum Level` INTEGER,
-    `Drum Kit Level` INTEGER,
-    `Transfer Kit Level` INTEGER,
-    `Fuser Kit Level` INTEGER,
-    `Cleaning Kit Level` INTEGER,
-    `Maintenance Combo Kit Level` INTEGER,
-    `Document Feeder Kit Level` INTEGER,
-    `Roller Level` INTEGER,
-    PRIMARY KEY(`Serial Number`)
-)
-
 # 昨天的紀錄
 select *, DATE(substr(`Report Content DateTime`, 7, 4) ||
 	'-' ||
