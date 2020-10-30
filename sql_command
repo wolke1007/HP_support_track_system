@@ -123,98 +123,98 @@ from
 		DISTINCT today.`Serial Number`, today.datetime,
 		case
 			when yesterday.`Black Level` - today.`Black Level` >= 1
-            and today.`Black Level` < 30
+            and today.`Black Level` <= {level_threshold} - 1 
 			or yesterday.`Black Level` = 0
             then today.`Black Level`
 			else 'N/A'
 		END `Black Level`,
 		case
 			when yesterday.`Cyan Level` - today.`Cyan Level` >= 1 
-            and today.`Cyan Level` < 30
+            and today.`Cyan Level` <= {level_threshold} - 1
 			or yesterday.`Cyan Level` = 0
             then today.`Cyan Level`
 			else 'N/A'
 		END `Cyan Level`,
 		case
 			when yesterday.`Magenta Level` - today.`Magenta Level` >= 1 
-            and today.`Magenta Level` < 30
+            and today.`Magenta Level` <= {level_threshold} - 1
 			or yesterday.`Magenta Level` = 0
             then today.`Magenta Level`
 			else 'N/A'
 		END `Magenta Level`,
 		case
 			when yesterday.`Cyan Drum Level` - today.`Cyan Drum Level` >= 1 
-            and today.`Cyan Drum Level` < 30
+            and today.`Cyan Drum Level` <= {level_threshold} - 1
 			or yesterday.`Cyan Drum Level` = 0
             then today.`Cyan Drum Level`
 			else 'N/A'
 		END `Cyan Drum Level`,
 		case
 			when yesterday.`Yellow Drum Level` - today.`Yellow Drum Level` >= 1 
-            and today.`Yellow Drum Level` < 30
+            and today.`Yellow Drum Level` <= {level_threshold} - 1
             or yesterday.`Yellow Drum Level` = 0
             then today.`Yellow Drum Level`
 			else 'N/A'
 		END `Yellow Drum Level`,
 		case
 			when yesterday.`Magenta Drum Level` - today.`Magenta Drum Level` >= 1 
-            and today.`Magenta Drum Level` < 30
+            and today.`Magenta Drum Level` <= {level_threshold} - 1
             or yesterday.`Magenta Drum Level` = 0
             then today.`Magenta Drum Level`
 			else 'N/A'
 		END `Magenta Drum Level`,
 		case
 			when yesterday.`Black Drum Level` - today.`Black Drum Level` >= 1 
-            and today.`Black Drum Level` < 30
+            and today.`Black Drum Level` <= {level_threshold} - 1
             or yesterday.`Black Drum Level` = 0
             then today.`Black Drum Level`
 			else 'N/A'
 		END `Black Drum Level`,
 		case
 			when yesterday.`Drum Kit Level` - today.`Drum Kit Level` >= 1 
-            and today.`Drum Kit Level` < 30
+            and today.`Drum Kit Level` <= {level_threshold} - 1
             or yesterday.`Drum Kit Level` = 0
             then today.`Drum Kit Level`
 			else 'N/A'
 		END `Drum Kit Level`,
 		case
 			when yesterday.`Transfer Kit Level` - today.`Transfer Kit Level` >= 1 
-            and today.`Transfer Kit Level` < 30
+            and today.`Transfer Kit Level` <= {level_threshold} - 1
             or yesterday.`Transfer Kit Level` = 0
             then today.`Transfer Kit Level`
 			else 'N/A'
 		END `Transfer Kit Level`,
 		case
 			when yesterday.`Fuser Kit Level` - today.`Fuser Kit Level` >= 1 
-            and today.`Fuser Kit Level` < 30
+            and today.`Fuser Kit Level` <= {level_threshold} - 1
             or yesterday.`Fuser Kit Level` = 0
             then today.`Fuser Kit Level`
 			else 'N/A'
 		END `Fuser Kit Level`,
 		case
 			when yesterday.`Cleaning Kit Level` - today.`Cleaning Kit Level` >= 1 
-            and today.`Cleaning Kit Level` < 30
+            and today.`Cleaning Kit Level` <= {level_threshold} - 1
             or yesterday.`Cleaning Kit Level` = 0
             then today.`Cleaning Kit Level`
 			else 'N/A'
 		END `Cleaning Kit Level`,
 		case
 			when yesterday.`Maintenance Combo Kit Level` - today.`Maintenance Combo Kit Level` >= 1 
-            and today.`Maintenance Combo Kit Level` < 30
+            and today.`Maintenance Combo Kit Level` <= {level_threshold} - 1
             or yesterday.`Maintenance Combo Kit Level` = 0
             then today.`Maintenance Combo Kit Level`
 			else 'N/A'
 		END `Maintenance Combo Kit Level`,
 		case
 			when yesterday.`Document Feeder Kit Level` - today.`Document Feeder Kit Level` >= 1 
-            and today.`Document Feeder Kit Level` < 30
+            and today.`Document Feeder Kit Level` <= {level_threshold} - 1
             or yesterday.`Document Feeder Kit Level` = 0
             then today.`Document Feeder Kit Level`
 			else 'N/A'
 		END `Document Feeder Kit Level`,
 		case
 			when yesterday.`Roller Level` - today.`Roller Level` >= 1 
-            and today.`Roller Level` < 30
+            and today.`Roller Level` <= {level_threshold} - 1
             or yesterday.`Roller Level` = 0
             then today.`Roller Level`
 			else 'N/A'
