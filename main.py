@@ -2,12 +2,10 @@
 
 import yaml
 from datetime import datetime
-import csv
-import subprocess
-import os
+from os import listdir, path, rename, system, remove
 import openpyxl
 from zipfile import BadZipfile
-import pandas as pd
+from pandas import read_excel
 import sqlite3
 import time
 
@@ -50,18 +48,18 @@ def past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, she
     first_row = None
     combined_sheet = openpyxl.Workbook()
     combined_sheet.create_sheet()
-    if(not os.path.isdir(directory_path)):
+    if(not path.isdir(directory_path)):
         input("[ERROR] directory {} not found!\n"
               "press Enter key to close this window...".format(directory_path))
         exit(1)
     combined_sheet.active.append((cell for cell in sheet_first_row))
-    for file_name in os.listdir(directory_path):
+    for file_name in listdir(directory_path):
         if(file_name == ".DS_Store"):
             continue  # 跳過這種自動產生的檔案
         if("imported_" in file_name):
             continue  # 跳過已經匯入過的檔案
         try:
-            read_file = openpyxl.load_workbook(os.path.join(directory_path, file_name))
+            read_file = openpyxl.load_workbook(path.join(directory_path, file_name))
         except BadZipfile:
             input("[ERROR] file {file_name} still open, close it first!\n"
               "press Enter key to close this window...".format(file_name=file_name))
@@ -78,7 +76,7 @@ def past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, she
             else:
                 combined_sheet.active.append((cell.value for cell in row))
         # 此檔案匯入結束，於檔名前面加入 prefix
-        os.rename(os.path.join(directory_path, file_name), os.path.join(directory_path, "imported_"+file_name))
+        rename(path.join(directory_path, file_name), path.join(directory_path, "imported_"+file_name))
     combined_sheet.save(combined_sheet_name + ".xlsx")
 
 def consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str, sheet_first_row:list):
@@ -89,19 +87,19 @@ def consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str,
     """
     combined_sheet = openpyxl.Workbook()
     combined_sheet.create_sheet()
-    if(not os.path.isdir(directory_path)):
+    if(not path.isdir(directory_path)):
         input("[ERROR] directory {} not found!\n"
               "press Enter key to close this window...".format(directory_path))
         exit(1)
     
     combined_sheet.active.append((cell for cell in sheet_first_row))
-    for file_name in os.listdir(directory_path):
+    for file_name in listdir(directory_path):
         if(file_name == ".DS_Store"):
             continue  # 跳過這種自動產生的檔案
         if("imported_" in file_name):
             continue  # 跳過已經匯入過的檔案
         try:
-            read_file = openpyxl.load_workbook(os.path.join(directory_path, file_name))
+            read_file = openpyxl.load_workbook(path.join(directory_path, file_name))
         except BadZipfile:
             input("[ERROR] file {file_name} still open, close it first!\n"
               "press Enter key to close this window...".format(file_name=file_name))
@@ -122,7 +120,7 @@ def consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str,
                 row_cnt+=1
                 combined_sheet.active.append((report_content_date,) + (tuple)(cell.value for cell in row))
         # 此檔案匯入結束，於檔名前面加入 prefix
-        os.rename(os.path.join(directory_path, file_name), os.path.join(directory_path, "imported_"+file_name))
+        rename(path.join(directory_path, file_name), path.join(directory_path, "imported_"+file_name))
     combined_sheet.save(combined_sheet_name + ".xlsx")
 
 def set_deliver_status(db_conn):
@@ -208,7 +206,7 @@ def set_deliver_status(db_conn):
     cur.close()
 
 def get_need_refill_sheet(command):
-    os.system(command)
+    system(command)
     print("need_refill.csv 表格已生成")
 
 if __name__ == '__main__':
@@ -240,7 +238,7 @@ if __name__ == '__main__':
         print("beging import past devier data...")
         # 將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
         past_delivery_data_to_excel(PAST_DELIVERY_DATA_PATH, COMBINED_PAST_DELIVERY_SHEET_NAME, PAST_DELIVERY_SHEET_FIRST_ROW)
-        excel_file = pd.read_excel(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx",
+        excel_file = read_excel(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx",
                                             sheet_name='Sheet',
                                             header=0)
         #將通整好的 excel 匯入至 SQLite 中
@@ -259,7 +257,7 @@ if __name__ == '__main__':
         print("beging import consumable levels data...")
         # 將資料夾內客戶閥值資料整理成可匯入 SQLite 的格式
         consumable_levels_data_to_excel(CONSUMABLE_LEVELS_DATA_PATH, COMBINED_CONSUMABLE_LEVELS_SHEET_NAME, CONSUMABLE_LEVELS_SHEET_FIRST_ROW)
-        excel_file = pd.read_excel(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx",
+        excel_file = read_excel(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx",
                                             sheet_name='Sheet',
                                             header=0)
         #將通整好的 excel 匯入至 SQLite 中
@@ -274,7 +272,7 @@ if __name__ == '__main__':
     
     def reset_db(arg):
         print("beging db reset...")
-        os.remove(DB_NAME)
+        remove(DB_NAME)
         f = open(DB_NAME, "a")
         f.close()
         new_db_conn = sqlite3.connect(DB_NAME)
