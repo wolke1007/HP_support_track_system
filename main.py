@@ -2,7 +2,7 @@
 
 import yaml
 from datetime import datetime
-from os import listdir, path, rename, system, remove
+from os import listdir, path, replace, system, remove
 import openpyxl
 from zipfile import BadZipfile
 from pandas import read_excel
@@ -76,7 +76,7 @@ def past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, she
             else:
                 combined_sheet.active.append((cell.value for cell in row))
         # 此檔案匯入結束，於檔名前面加入 prefix
-        rename(path.join(directory_path, file_name), path.join(directory_path, "imported_"+file_name))
+        replace(path.join(directory_path, file_name), path.join(directory_path, "imported_"+file_name))
     combined_sheet.save(combined_sheet_name + ".xlsx")
 
 def consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str, sheet_first_row:list):
@@ -120,7 +120,7 @@ def consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str,
                 row_cnt+=1
                 combined_sheet.active.append((report_content_date,) + (tuple)(cell.value for cell in row))
         # 此檔案匯入結束，於檔名前面加入 prefix
-        rename(path.join(directory_path, file_name), path.join(directory_path, "imported_"+file_name))
+        replace(path.join(directory_path, file_name), path.join(directory_path, "imported_"+file_name))
     combined_sheet.save(combined_sheet_name + ".xlsx")
 
 def set_deliver_status(db_conn):
@@ -306,8 +306,8 @@ if __name__ == '__main__':
         "6. 退出程式\n")
         if choose == "5":
             while True:
-                delete = input("此選擇將會刪除整個 DB 並另起一個新的資料庫"
-                "過去的紀錄將全部消失，此操作將無法還原，請問要繼續嗎? y/n\n")
+                delete = input("此選擇將會刪除整個 DB 並另起一個新的資料庫\n"
+                "過去的紀錄將全部消失，此操作將無法還原，請問要繼續嗎?\ny/n\n")
                 if delete == "n":
                     exit(0)
                 if delete == "y":
@@ -315,8 +315,14 @@ if __name__ == '__main__':
         if choose == "6":
             print("exit program.")
             break
-        db_conn = sqlite3.connect(DB_NAME)
-        func = function_list.get(choose, lambda x: print("Invalid number!\n\n"))
-        func(db_conn)  # 執行選取的邏輯
-        db_conn.close()
+        try:
+            db_conn = sqlite3.connect(DB_NAME)
+            func = function_list.get(choose, lambda x: print("Invalid number!\n\n"))
+            func(db_conn)  # 執行選取的邏輯
+            db_conn.close()
+        except  Exception as e:
+            print(e)
+            input("exception occur!\n"
+              "press Enter key to close this window...")
+            exit(1)
         
