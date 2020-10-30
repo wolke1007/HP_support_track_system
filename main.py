@@ -224,18 +224,21 @@ if __name__ == '__main__':
     EXPORT_QUERY_COMMAND = config.get('EXPORT_QUERY_COMMAND')
 
     def apply_settings(db_conn):
-        print("beging apply settings")
+        print("[INFO] beging apply settings")
         cur = db_conn.cursor()
+        config = load_config()
+        validate_config(config)
+        LEVEL_THRESHOLD = config.get('LEVEL_THRESHOLD')
         delete_view_command = SQL_COMMANDS.get('delete_view_two_days_level_diff').format(level_threshold=str(LEVEL_THRESHOLD))
         create_view_command = SQL_COMMANDS.get('reset_db_commands').get('create_view_two_days_level_diff').format(level_threshold=str(LEVEL_THRESHOLD))
         cur.execute(delete_view_command)
         time.sleep(1)
         cur.execute(create_view_command)
         cur.close()
-        print("end of apply settings")
+        print("[INFO] end of apply settings")
     
     def import_past_deliver(db_conn):
-        print("beging import past devier data...")
+        print("[INFO] beging import past devier data...")
         # 將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
         past_delivery_data_to_excel(PAST_DELIVERY_DATA_PATH, COMBINED_PAST_DELIVERY_SHEET_NAME, PAST_DELIVERY_SHEET_FIRST_ROW)
         excel_file = read_excel(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx",
@@ -251,10 +254,10 @@ if __name__ == '__main__':
         cur.execute(sql_command)
         db_conn.commit()
         cur.close()
-        print("end of import past devier data...")
+        print("[INFO] end of import past devier data...")
     
     def import_consumable_levels(db_conn):
-        print("beging import consumable levels data...")
+        print("[INFO] beging import consumable levels data...")
         # 將資料夾內客戶閥值資料整理成可匯入 SQLite 的格式
         consumable_levels_data_to_excel(CONSUMABLE_LEVELS_DATA_PATH, COMBINED_CONSUMABLE_LEVELS_SHEET_NAME, CONSUMABLE_LEVELS_SHEET_FIRST_ROW)
         excel_file = read_excel(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx",
@@ -262,16 +265,16 @@ if __name__ == '__main__':
                                             header=0)
         #將通整好的 excel 匯入至 SQLite 中
         excel_file.to_sql('consumable_levels', db_conn, if_exists='append', index=False)
-        print("end of  import consumable levels data...")
+        print("[INFO] end of  import consumable levels data...")
     
     def get_deliver_status(db_conn):
-        print("begin get deliver status")
+        print("[INFO] begin get deliver status")
         set_deliver_status(db_conn)
         get_need_refill_sheet(EXPORT_QUERY_COMMAND)
-        print("end of deliver status")
+        print("[INFO] end of deliver status")
     
     def reset_db(db_conn):
-        print("beging db reset...")
+        print("[INFO] beging db reset...")
         db_conn.close()
         remove(DB_NAME)
         f = open(DB_NAME, "a")
@@ -286,7 +289,7 @@ if __name__ == '__main__':
             cur.execute(sql_command)
             time.sleep(1)
         cur.close()
-        print("end of db reset...")
+        print("[INFO] end of db reset...")
 
     function_list = {
         "1": import_consumable_levels,
