@@ -207,9 +207,9 @@ def set_deliver_status(db_conn):
         cur2.close()
     cur.close()
 
-def get_need_refill_sheet():
-    #TODO 實作產出結果 csv
-    pass
+def get_need_refill_sheet(command):
+    os.system(command)
+    print("need_refill.csv 表格已生成")
 
 if __name__ == '__main__':
     config = load_config()
@@ -223,6 +223,7 @@ if __name__ == '__main__':
     CONSUMABLE_LEVELS_SHEET_FIRST_ROW = config.get('SHEET_FIRST_ROW').get('consumable_levels_data')
     DB_NAME = config.get('DB_NAME')
     SQL_COMMANDS = config.get('SQL_COMMANDS')
+    EXPORT_QUERY_COMMAND = config.get('EXPORT_QUERY_COMMAND')
 
     def apply_settings(db_conn):
         print("beging apply settings")

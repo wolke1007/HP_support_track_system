@@ -7,7 +7,7 @@ DIRECTORY_PATH:
 COMBINED_SHEET_NAME: 
     past_delivery: combined_past_delivery_sheet
     consumable_levels: combined_consumable_levels_sheet
-
+EXPORT_QUERY_COMMAND: sqlite3 -header -csv database.db < query_need_refill.sql > need_refill.csv
 SHEET_FIRST_ROW:
     past_delivery_data:
         - serial
@@ -295,4 +295,3 @@ SQL_COMMANDS:
         where
             goods_type is null"
     delete_view_two_days_level_diff: DROP VIEW IF EXISTS two_days_level_diff;
-                
