@@ -205,8 +205,7 @@ if __name__ == '__main__':
     SQL_COMMANDS = config.get('SQL_COMMANDS')
 
     def apply_settings(db_conn):
-        print("1")
-        #TODO 刪除 view 並以當前的 threshold 重新新增 view
+        print("beging apply settings")
         cur = db_conn.cursor()
         delete_view_command = SQL_COMMANDS.get('delete_view_level_diff').format(level_threshold=str(LEVEL_THRESHOLD))
         create_view_command = SQL_COMMANDS.get('reset_db_commands').get('create_view_level_diff').format(level_threshold=str(LEVEL_THRESHOLD))
@@ -214,6 +213,7 @@ if __name__ == '__main__':
         time.sleep(1)
         cur.execute(create_view_command)
         cur.close()
+        print("end of apply settings")
     
     def import_past_deliver(db_conn):
         print("beging import past devier data...")
@@ -243,8 +243,10 @@ if __name__ == '__main__':
         print("end of  import consumable levels data...")
     
     def get_deliver_status(db_conn):
-        print("4")
+        print("begin get deliver status")
         set_deliver_status(db_conn)
+        
+        print("end of deliver status")
     
     def reset_db(arg):
         print("beging db reset...")
@@ -264,21 +266,29 @@ if __name__ == '__main__':
         print("end of db reset...")
 
     function_list = {
-        "1": apply_settings,
+        "1": import_consumable_levels,
         "2": import_past_deliver,
-        "3": import_consumable_levels,
-        "4": get_deliver_status,
+        "3": get_deliver_status,
+        "4": apply_settings,
         "5": reset_db  # delete all tables and views
     }
 
     while True:
         choose = input("請輸入功能代號:\n"
-        "1. 套用新設定(閥值)\n"
+        "1. 匯入目前設備用量清單\n"
         "2. 匯入過去派送紀錄\n"
-        "3. 匯入目前設備用量清單\n"
-        "4. 取得應派送設備表單\n"
+        "3. 取得應派送設備表單\n"
+        "4. 套用新設定(閥值)\n"
         "5. 重設 DB 設定(!注意!資料將被清空)\n"
         "6. 退出程式\n")
+        if choose == "5":
+            while True:
+                delete = input("此選擇將會刪除整個 DB 並另起一個新的"
+                "過去的紀錄將全部消失，請問要繼續嗎? y/n\n")
+                if delete == "n":
+                    exit(0)
+                if delete == "y":
+                    break
         if choose == "6":
             print("exit program.")
             break
