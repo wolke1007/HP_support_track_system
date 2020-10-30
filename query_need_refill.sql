@@ -1,5 +1,5 @@
 select
-	DISTINCT consumable_levels.`Product Model Name` '機型',
+	consumable_levels.`Product Model Name` '機型',
 	deliver_status.serial_number '序號',
 	consumable_levels.`Asset Number` '資產編號',
 	deliver_status.goods_name '品項',
@@ -16,3 +16,5 @@ join consumable_levels
 where
 	deliver_status.need_refill = 1
 	and deliver_status.serial_number = consumable_levels.`Serial Number`
+group by
+	deliver_status.goods_name

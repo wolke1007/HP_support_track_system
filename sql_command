@@ -257,7 +257,7 @@ select
 from
 	(
 	SELECT
-		DATE(substr(past_delivery_data.arrive_date, 1, 10)) last_deliver_date, past_delivery_data.serial, past_delivery_data.goods_name, past_delivery_data.goods_type, FALSE status
+		DATE(substr(past_delivery_data.arrive_date, 1, 10)) last_deliver_date, past_delivery_data.serial, past_delivery_data.goods_name, past_delivery_data.goods_type, 0 status
 	FROM
 		past_delivery_data
 	GROUP BY
