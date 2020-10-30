@@ -78,7 +78,7 @@ DB_NAME: database.db
 SQL_COMMANDS:
     two_days_level_diff: select * from two_days_level_diff
     check_need_refill: select need_refill from deliver_status where serial_number = '{serial_number}' and goods_type = '{goods_type}'
-    insert_deliver_status: insert into deliver_status (serial_number, goods_type) values ('{serial_number}', '{goods_type}')
+    insert_deliver_status: replace into deliver_status (serial_number, goods_type) values ('{serial_number}', '{goods_type}')
     update_deliver_status: update deliver_status SET need_refill = 1 where serial_number = '{serial_number}' and goods_type = '{goods_type}'
     reset_db_commands: 
         create_table_past_delivery_data: "CREATE TABLE past_delivery_data (
