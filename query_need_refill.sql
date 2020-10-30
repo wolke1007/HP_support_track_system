@@ -1,20 +1,16 @@
-select
-	consumable_levels.`Product Model Name` '機型',
-	deliver_status.serial_number '序號',
-	consumable_levels.`Asset Number` '資產編號',
-	deliver_status.goods_name '品項',
-	deliver_status.goods_type '品名',
-	consumable_levels.`Site` '所在地',
-	consumable_levels.`Region` '地區',
-	consumable_levels.`Customer Name` '客戶',
-	consumable_levels.`Building` '所屬大樓',
-	consumable_levels.`Level` '樓層',
-	consumable_levels.`Usage Count Date` '最後用量資訊收集時間'
-from
-	deliver_status
-join consumable_levels
-where
-	deliver_status.need_refill = 1
-	and deliver_status.serial_number = consumable_levels.`Serial Number`
-group by
-	deliver_status.goods_name
+SELECT DISTINCT
+    c.`Product Model Name` AS '機型',
+    d.serial_number AS '序號',
+    c.`Asset Number` AS '資產編號',
+    MAX(d.goods_name) AS '品項',
+    d.goods_type AS '品名',
+    c.`Site` AS '所在地',
+    c.`Region` AS '地區',
+    c.`Customer Name` AS '客戶',
+    c.`Building` AS '所屬大樓',
+    c.`Level` AS '樓層',
+    c.`Usage Count Date` AS '最後用量資訊收集時間'
+FROM consumable_levels AS c
+JOIN deliver_status AS d ON d.serial_number = c.`Serial Number`
+WHERE d.need_refill = 1
+GROUP BY d.serial_number, d.goods_type;
