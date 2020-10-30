@@ -57,6 +57,8 @@ def past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, she
     for file_name in os.listdir(directory_path):
         if(file_name == ".DS_Store"):
             continue  # 跳過這種自動產生的檔案
+        if("imported_" in file_name):
+            continue  # 跳過已經匯入過的檔案
         try:
             read_file = openpyxl.load_workbook(os.path.join(directory_path, file_name))
         except BadZipfile:
@@ -74,6 +76,8 @@ def past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, she
                 continue
             else:
                 combined_sheet.active.append((cell.value for cell in row))
+        # 此檔案匯入結束，於檔名前面加入 prefix
+        os.rename(os.path.join(directory_path, file_name), os.path.join(directory_path, "imported_"+file_name))
     combined_sheet.save(combined_sheet_name + ".xlsx")
 
 def consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str, sheet_first_row:list):
@@ -93,6 +97,8 @@ def consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str,
     for file_name in os.listdir(directory_path):
         if(file_name == ".DS_Store"):
             continue  # 跳過這種自動產生的檔案
+        if("imported_" in file_name):
+            continue  # 跳過已經匯入過的檔案
         try:
             read_file = openpyxl.load_workbook(os.path.join(directory_path, file_name))
         except BadZipfile:
@@ -114,6 +120,8 @@ def consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str,
             else:
                 row_cnt+=1
                 combined_sheet.active.append((report_content_date,) + (tuple)(cell.value for cell in row))
+        # 此檔案匯入結束，於檔名前面加入 prefix
+        os.rename(os.path.join(directory_path, file_name), os.path.join(directory_path, "imported_"+file_name))
     combined_sheet.save(combined_sheet_name + ".xlsx")
 
 def set_deliver_status(db_conn):
