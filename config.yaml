@@ -294,4 +294,29 @@ SQL_COMMANDS:
                 goods_name = past_delivery_data.goods_name )
         where
             goods_type is null"
+    update_deliver_status_up_to_date: "REPLACE INTO
+        deliver_status
+        select
+            past_delivery.last_deliver_date,
+            past_delivery.serial,
+            past_delivery.goods_name,
+            past_delivery.goods_type,
+            FALSE status
+        from
+            (
+            SELECT
+                DATE(substr(past_delivery_data.arrive_date, 1, 10)) last_deliver_date, past_delivery_data.serial, past_delivery_data.goods_name, past_delivery_data.goods_type, 0 status
+            FROM
+                past_delivery_data
+            GROUP BY
+                past_delivery_data.serial, past_delivery_data.goods_name
+            HAVING
+                MAX(past_delivery_data.arrive_date) ) past_delivery
+        EXCEPT 
+            SELECT last_deliver_date,
+                serial_number serial,
+                goods_name,
+                goods_type,
+                FALSE status
+            from deliver_status"
     delete_view_two_days_level_diff: DROP VIEW IF EXISTS two_days_level_diff;

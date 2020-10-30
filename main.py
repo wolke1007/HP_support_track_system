@@ -249,6 +249,9 @@ if __name__ == '__main__':
         cur = db_conn.cursor()
         sql_command = SQL_COMMANDS.get('fill_known_goods_type')
         cur.execute(sql_command)
+        sql_command = SQL_COMMANDS.get('update_deliver_status_up_to_date')
+        cur.execute(sql_command)
+        db_conn.commit()
         cur.close()
         print("end of import past devier data...")
     
@@ -266,6 +269,7 @@ if __name__ == '__main__':
     def get_deliver_status(db_conn):
         print("begin get deliver status")
         set_deliver_status(db_conn)
+        get_need_refill_sheet(EXPORT_QUERY_COMMAND)
         print("end of deliver status")
     
     def reset_db(arg):
