@@ -19,7 +19,7 @@ CREATE TABLE deliver_status (
     serial_number TEXT,
     goods_name TEXT,
     goods_type TEXT,
-    need_refill INTEGER DEFAULT 0,
+    need_refill INTEGER DEFAULT 1,
     PRIMARY KEY(serial_number, goods_name, goods_type)
 )
 
@@ -85,7 +85,7 @@ from consumable_levels where datetime = DATE('NOW','-1 DAY')
 
 # [嘗試][做成VIEW][可能有效能問題] 
 # 撈出比前一天(範例中以2020-10-28為基準，往前算一天) level 要小(表示有使用)或低於閥值(範例中為30)的顏色，若數值沒變動則設為 N/A
-CREATE VIEW level_diff AS 
+CREATE VIEW two_days_level_diff AS 
 select
 	*
 from
@@ -273,4 +273,4 @@ EXCEPT
 	from deliver_status
 
 # 刪除 VIEW
-DROP VIEW IF EXISTS level_diff;
+DROP VIEW IF EXISTS two_days_level_diff;

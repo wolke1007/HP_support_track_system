@@ -76,8 +76,8 @@ SHEET_FIRST_ROW:
 DB_NAME: database.db
 
 SQL_COMMANDS:
-    level_diff: select * from level_diff
-    check_need_refill: select need_refill from deliver_status where serial_number = '{serial_number}'
+    two_days_level_diff: select * from two_days_level_diff
+    check_need_refill: select need_refill from deliver_status where serial_number = '{serial_number}' and goods_type = '{goods_type}'
     insert_deliver_status: insert into deliver_status (serial_number, goods_type) values ('{serial_number}', '{goods_type}')
     update_deliver_status: update deliver_status SET need_refill = 1 where serial_number = '{serial_number}' and goods_type = '{goods_type}'
     reset_db_commands: 
@@ -100,7 +100,7 @@ SQL_COMMANDS:
                     serial_number TEXT,
                     goods_name TEXT,
                     goods_type TEXT,
-                    need_refill INTEGER DEFAULT 0,
+                    need_refill INTEGER DEFAULT 1,
                     PRIMARY KEY(serial_number, goods_name, goods_type)
                 );"
         create_table_consumable_levels: "CREATE TABLE consumable_levels (
@@ -153,7 +153,7 @@ SQL_COMMANDS:
                     `Yellow Developer Maintenance Level` INTEGER,
                     PRIMARY KEY(`Report Content DateTime`, `Serial Number`)
                 );"
-        create_view_level_diff: "CREATE VIEW level_diff AS 
+        create_view_two_days_level_diff: "CREATE VIEW two_days_level_diff AS 
             select
                 *
             from
@@ -294,5 +294,5 @@ SQL_COMMANDS:
                 goods_name = past_delivery_data.goods_name )
         where
             goods_type is null"
-    delete_view_level_diff: DROP VIEW IF EXISTS level_diff;
+    delete_view_two_days_level_diff: DROP VIEW IF EXISTS two_days_level_diff;
                 

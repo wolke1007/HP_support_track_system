@@ -132,6 +132,8 @@ def set_deliver_status(db_conn):
     並去檢查是否需要配送，若未配送過則設為 TRUE
     """
     goods_type_dict = {
+        # ('AAAABBBBB', '2020-10-30', 0, 'N/A', 29, 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A')
+        # 0 是序號，1 是日期不需要
         2: "黑",
         3: "藍",
         4: "紅",
@@ -148,46 +150,58 @@ def set_deliver_status(db_conn):
         15: "roller"
     }
     cur = db_conn.cursor()
-    for row in cur.execute(SQL_COMMANDS.get('level_diff')):
+    for row in cur.execute(SQL_COMMANDS.get('two_days_level_diff')):
         # update deliver_status if need
-        cur2 = db_conn.cursor()
         print(row)
-        check_need_refill = SQL_COMMANDS.get('check_need_refill').format(serial_number=row[0])
-        result = cur2.execute(check_need_refill).fetchone()
-        if (result is None):
-            print("此序號 {serial} 機器尚未有派送資料".format(serial=row[0]))
-            # 在 deliver_status 新增一欄，但只填上序號與品項(查 goods_type 的表)
-            index = 0
-            cur3 = db_conn.cursor()
-            for query_item in row:
-                if type(query_item) is int:  # 這邊姑且使用數字來判斷是否有值，其他的序號、日期、N/A 皆為文字
-                    goods_type = goods_type_dict.get(index)
-                    insert_deliver_status = SQL_COMMANDS.get('insert_deliver_status').format(serial_number=row[0], goods_type=goods_type)
-                    print(insert_deliver_status)
-                    print("insert deliver_status")
-                    cur3.execute(insert_deliver_status)
-                index+=1
-            db_conn.commit()
-            cur3.close()
-        else:
-            print("此序號 {serial} 機器已有派送資料".format(serial=row[0]))
-            print(result)
-            if (result[0] == True):
-                print("當前 need_refill 已經是 True，不進行動作")
-            if (result[0] == False):
-                print("當前 need_refill 為 False，將設為 True")
+        goods_need_refill = []
+        for i in range(len(row)):
+            if i > 1 and row[i] != 'N/A':  # 0 是序號，1 是日期不需要
+                goods_need_refill.append(goods_type_dict[i])
+        print("goods_need_refill:")
+        print(goods_need_refill)
+        cur2 = db_conn.cursor()
+        check_need_refill = SQL_COMMANDS.get('check_need_refill')
+        
+        for goods in goods_need_refill:
+            result = cur2.execute(
+                check_need_refill.format(serial_number=row[0], goods_type=goods)
+                ).fetchone()
+        
+            if (result is None):
+                print("序號:[{serial}] 的零件:[{goods_type}] 尚未有派送資料".format(serial=row[0],goods_type=goods))
+                # 在 deliver_status 新增一欄，但只填上序號與品項(查 goods_type 的表)
                 index = 0
                 cur3 = db_conn.cursor()
                 for query_item in row:
                     if type(query_item) is int:  # 這邊姑且使用數字來判斷是否有值，其他的序號、日期、N/A 皆為文字
                         goods_type = goods_type_dict.get(index)
-                        update_deliver_status = SQL_COMMANDS.get('update_deliver_status').format(serial_number=row[0], goods_type=goods_type)
-                        print(update_deliver_status)
-                        print("update deliver_status")
-                        cur3.execute(update_deliver_status)
+                        insert_deliver_status = SQL_COMMANDS.get('insert_deliver_status').format(serial_number=row[0], goods_type=goods_type)
+                        print(insert_deliver_status)
+                        print("insert deliver_status")
+                        cur3.execute(insert_deliver_status)
                     index+=1
                 db_conn.commit()
                 cur3.close()
+            else:
+                print("序號:[{serial}] 的零件:[{goods_type}] 已有派送資料".format(serial=row[0],goods_type=goods))
+                print(result)
+                # FIXME 這邊會 append 全新的，應該要是修改既有的
+                if (result[0] == True):
+                    print("當前 need_refill 已經是 True，不進行動作")
+                if (result[0] == False):
+                    print("當前 need_refill 為 False，將設為 True")
+                    index = 0
+                    cur3 = db_conn.cursor()
+                    for query_item in row:
+                        if type(query_item) is int:  # 這邊姑且使用數字來判斷是否有值，其他的序號、日期、N/A 皆為文字
+                            goods_type = goods_type_dict.get(index)
+                            update_deliver_status = SQL_COMMANDS.get('update_deliver_status').format(serial_number=row[0], goods_type=goods_type)
+                            print(update_deliver_status)
+                            print("update deliver_status")
+                            cur3.execute(update_deliver_status)
+                        index+=1
+                    db_conn.commit()
+                    cur3.close()
         cur2.close()
     cur.close()
 
@@ -207,8 +221,8 @@ if __name__ == '__main__':
     def apply_settings(db_conn):
         print("beging apply settings")
         cur = db_conn.cursor()
-        delete_view_command = SQL_COMMANDS.get('delete_view_level_diff').format(level_threshold=str(LEVEL_THRESHOLD))
-        create_view_command = SQL_COMMANDS.get('reset_db_commands').get('create_view_level_diff').format(level_threshold=str(LEVEL_THRESHOLD))
+        delete_view_command = SQL_COMMANDS.get('delete_view_two_days_level_diff').format(level_threshold=str(LEVEL_THRESHOLD))
+        create_view_command = SQL_COMMANDS.get('reset_db_commands').get('create_view_two_days_level_diff').format(level_threshold=str(LEVEL_THRESHOLD))
         cur.execute(delete_view_command)
         time.sleep(1)
         cur.execute(create_view_command)
@@ -245,7 +259,6 @@ if __name__ == '__main__':
     def get_deliver_status(db_conn):
         print("begin get deliver status")
         set_deliver_status(db_conn)
-        
         print("end of deliver status")
     
     def reset_db(arg):
@@ -258,7 +271,7 @@ if __name__ == '__main__':
         create_db_commands = SQL_COMMANDS.get('reset_db_commands')
         for key in create_db_commands.keys():
             sql_command = create_db_commands.get(key)
-            if (key == "create_view_level_diff"):
+            if (key == "create_view_two_days_level_diff"):
                 sql_command = create_db_commands.get(key).format(level_threshold=str(LEVEL_THRESHOLD))
             cur.execute(sql_command)
             time.sleep(1)
@@ -275,8 +288,8 @@ if __name__ == '__main__':
 
     while True:
         choose = input("請輸入功能代號:\n"
-        "1. 匯入目前設備用量清單\n"
-        "2. 匯入過去派送紀錄\n"
+        "1. 匯入目前設備用量清單(匯入過檔名將會改成 imported_ 開頭，並無法再次匯入)\n"
+        "2. 匯入過去派送紀錄(匯入過檔名將會改成 imported_ 開頭，並無法再次匯入)\n"
         "3. 取得應派送設備表單\n"
         "4. 套用新設定(閥值)\n"
         "5. 重設 DB 設定(!注意!資料將被清空)\n"
