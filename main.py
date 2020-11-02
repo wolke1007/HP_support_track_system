@@ -379,7 +379,7 @@ if __name__ == '__main__':
                 "過去的紀錄將全部消失，此操作將無法還原，請問要繼續嗎?\ny/n\n"
                 "選擇: ")
                 if delete == "n":
-                    exit
+                    exit()
                 if delete == "y":
                     break
         try:
