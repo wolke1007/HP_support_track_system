@@ -129,6 +129,8 @@ def get_need_refill_sheet(command):
     """
     取 view table
     """
+    if(path.isfile("need_refill.csv")):
+        remove("need_refill.csv")
     system(command)
     print("need_refill.csv 表格已生成")
 
@@ -162,6 +164,8 @@ def import_past_deliver(db_conn):
     # cur.execute(sql_command)
     db_conn.commit()
     cur.close()
+    if(path.isfile(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx")):
+        remove(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx")
     print("[INFO] end of import past devier data...")
 
 def import_consumable_levels(db_conn):
@@ -173,6 +177,8 @@ def import_consumable_levels(db_conn):
                                         header=0)
     #將通整好的 excel 匯入至 SQLite 中
     excel_file.to_sql('consumable_levels', db_conn, if_exists='append', index=False)
+    if(path.isfile(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx")):
+        remove(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx")
     print("[INFO] end of  import consumable levels data...")
 
 def insert_or_ignore_deliver_status(db_conn):
@@ -286,13 +292,12 @@ def first_time_get_deliver_status(db_conn):
     import_past_deliver(db_conn)
     # 更新 consumable_level
     import_consumable_levels(db_conn)
-    # 新增舊的 deliver_status table 中沒有的機器
+    # 第一次跑不跑這項 新增舊的 deliver_status table 中沒有的機器
     insert_or_ignore_deliver_status(db_conn)
-    # 趁此時 consumable_levels 的值是今天的，而 product_level 的值是昨天的
-    # 來設定 deliver_status need_refill 的值
-    first_time_update_deliver_status(db_conn)
     # 將今天的數值填進 product_level 中
     update_product_level(db_conn)
+    # 來設定 deliver_status need_refill 的值
+    first_time_update_deliver_status(db_conn)
     # 取 view table 結束這回合
     get_need_refill_sheet(EXPORT_QUERY_COMMAND)
     print("[INFO] end of update and deliver status")
