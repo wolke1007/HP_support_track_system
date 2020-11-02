@@ -76,10 +76,9 @@ SHEET_FIRST_ROW:
 DB_NAME: database.db
 
 SQL_COMMANDS:
-    two_days_level_diff: select * from two_days_level_diff
-    check_need_refill: select need_refill from deliver_status where serial_number = '{serial_number}' and goods_type = '{goods_type}'
-    insert_deliver_status: replace into deliver_status (serial_number, goods_type) values ('{serial_number}', '{goods_type}')
-    update_deliver_status: update deliver_status SET need_refill = 1 where serial_number = '{serial_number}' and goods_type = '{goods_type}'
+    check_need_refill_with_2args: select need_refill from deliver_status where serial_number = '{serial_number}' and goods_type = '{goods_type}'
+    insert_deliver_status_with_2args: replace into deliver_status (serial_number, goods_type) values ('{serial_number}', '{goods_type}')
+    update_deliver_status_with_2args: update deliver_status SET need_refill = 1 where serial_number = '{serial_number}' and goods_type = '{goods_type}'
     reset_db_commands: 
         create_table_past_delivery_data: "CREATE TABLE past_delivery_data (
             serial INTEGER, 
@@ -151,127 +150,28 @@ SQL_COMMANDS:
             `Magenta Developer Maintenance Level` INTEGER,
             `Yellow Developer Maintenance Level` INTEGER,
             PRIMARY KEY(`Report Content DateTime`, `Serial Number`));"
-        create_view_two_days_level_diff: "CREATE VIEW two_days_level_diff AS 
-            select
-                *
-            from
-                (
-                select
-                    DISTINCT today.`Serial Number`, today.datetime,
-                    case
-                        when yesterday.`Black Level` - today.`Black Level` >= 1
-                        and today.`Black Level` <= {level_threshold} - 1 
-                        or yesterday.`Black Level` = 0
-                        then today.`Black Level`
-                        else 'N/A'
-                    END `Black Level`,
-                    case
-                        when yesterday.`Cyan Level` - today.`Cyan Level` >= 1 
-                        and today.`Cyan Level` <= {level_threshold} - 1
-                        or yesterday.`Cyan Level` = 0
-                        then today.`Cyan Level`
-                        else 'N/A'
-                    END `Cyan Level`,
-                    case
-                        when yesterday.`Magenta Level` - today.`Magenta Level` >= 1 
-                        and today.`Magenta Level` <= {level_threshold} - 1
-                        or yesterday.`Magenta Level` = 0
-                        then today.`Magenta Level`
-                        else 'N/A'
-                    END `Magenta Level`,
-                    case
-                        when yesterday.`Cyan Drum Level` - today.`Cyan Drum Level` >= 1 
-                        and today.`Cyan Drum Level` <= {level_threshold} - 1
-                        or yesterday.`Cyan Drum Level` = 0
-                        then today.`Cyan Drum Level`
-                        else 'N/A'
-                    END `Cyan Drum Level`,
-                    case
-                        when yesterday.`Yellow Drum Level` - today.`Yellow Drum Level` >= 1 
-                        and today.`Yellow Drum Level` <= {level_threshold} - 1
-                        or yesterday.`Yellow Drum Level` = 0
-                        then today.`Yellow Drum Level`
-                        else 'N/A'
-                    END `Yellow Drum Level`,
-                    case
-                        when yesterday.`Magenta Drum Level` - today.`Magenta Drum Level` >= 1 
-                        and today.`Magenta Drum Level` <= {level_threshold} - 1
-                        or yesterday.`Magenta Drum Level` = 0
-                        then today.`Magenta Drum Level`
-                        else 'N/A'
-                    END `Magenta Drum Level`,
-                    case
-                        when yesterday.`Black Drum Level` - today.`Black Drum Level` >= 1 
-                        and today.`Black Drum Level` <= {level_threshold} - 1
-                        or yesterday.`Black Drum Level` = 0
-                        then today.`Black Drum Level`
-                        else 'N/A'
-                    END `Black Drum Level`,
-                    case
-                        when yesterday.`Drum Kit Level` - today.`Drum Kit Level` >= 1 
-                        and today.`Drum Kit Level` <= {level_threshold} - 1
-                        or yesterday.`Drum Kit Level` = 0
-                        then today.`Drum Kit Level`
-                        else 'N/A'
-                    END `Drum Kit Level`,
-                    case
-                        when yesterday.`Transfer Kit Level` - today.`Transfer Kit Level` >= 1 
-                        and today.`Transfer Kit Level` <= {level_threshold} - 1
-                        or yesterday.`Transfer Kit Level` = 0
-                        then today.`Transfer Kit Level`
-                        else 'N/A'
-                    END `Transfer Kit Level`,
-                    case
-                        when yesterday.`Fuser Kit Level` - today.`Fuser Kit Level` >= 1 
-                        and today.`Fuser Kit Level` <= {level_threshold} - 1
-                        or yesterday.`Fuser Kit Level` = 0
-                        then today.`Fuser Kit Level`
-                        else 'N/A'
-                    END `Fuser Kit Level`,
-                    case
-                        when yesterday.`Cleaning Kit Level` - today.`Cleaning Kit Level` >= 1 
-                        and today.`Cleaning Kit Level` <= {level_threshold} - 1
-                        or yesterday.`Cleaning Kit Level` = 0
-                        then today.`Cleaning Kit Level`
-                        else 'N/A'
-                    END `Cleaning Kit Level`,
-                    case
-                        when yesterday.`Maintenance Combo Kit Level` - today.`Maintenance Combo Kit Level` >= 1 
-                        and today.`Maintenance Combo Kit Level` <= {level_threshold} - 1
-                        or yesterday.`Maintenance Combo Kit Level` = 0
-                        then today.`Maintenance Combo Kit Level`
-                        else 'N/A'
-                    END `Maintenance Combo Kit Level`,
-                    case
-                        when yesterday.`Document Feeder Kit Level` - today.`Document Feeder Kit Level` >= 1 
-                        and today.`Document Feeder Kit Level` <= {level_threshold} - 1
-                        or yesterday.`Document Feeder Kit Level` = 0
-                        then today.`Document Feeder Kit Level`
-                        else 'N/A'
-                    END `Document Feeder Kit Level`,
-                    case
-                        when yesterday.`Roller Level` - today.`Roller Level` >= 1 
-                        and today.`Roller Level` <= {level_threshold} - 1
-                        or yesterday.`Roller Level` = 0
-                        then today.`Roller Level`
-                        else 'N/A'
-                    END `Roller Level`
-                from
-                    (
-                    select
-                        DATE(substr(`Report Content DateTime`, 7, 4) || '-' || substr(`Report Content DateTime`, 1, 2) || '-' || substr(`Report Content DateTime`, 4, 2) ) datetime, *
-                    from
-                        consumable_levels
-                    where
-                        datetime = Date('NOW', '-1 day')) yesterday, (
-                    select
-                        DATE(substr(`Report Content DateTime`, 7, 4) || '-' || substr(`Report Content DateTime`, 1, 2) || '-' || substr(`Report Content DateTime`, 4, 2) ) datetime, *
-                    from
-                        consumable_levels
-                    where
-                        datetime = Date('NOW')) today
-                where
-                    yesterday.`Serial Number` = today.`Serial Number` )"
+        create_product_level: "CREATE TABLE product_level (
+            last_update_date TEXT,
+            serial_number TEXT,
+            goods_type TEXT,
+            product_level INTEGER,
+            PRIMARY KEY(serial_number, goods_type))"
+        create_view_need_deliver_report: "CREATE VIEW need_deliver_report AS SELECT DISTINCT
+                c.`Product Model Name` AS '機型',
+                d.serial_number AS '序號',
+                c.`Asset Number` AS '資產編號',
+                MAX(d.goods_name) AS '品項',
+                d.goods_type AS '品名',
+                c.`Site` AS '所在地',
+                c.`Region` AS '地區',
+                c.`Customer Name` AS '客戶',
+                c.`Building` AS '所屬大樓',
+                c.`Level` AS '樓層',
+                c.`Usage Count Date` AS '最後用量資訊收集時間'
+            FROM consumable_levels AS c
+            JOIN deliver_status AS d ON d.serial_number = c.`Serial Number`
+            WHERE d.need_refill = 1 AND d.need_refill_count = 0
+            GROUP BY d.serial_number, d.goods_type;"
     fill_known_goods_type: "update
             past_delivery_data
         set
@@ -292,29 +192,18 @@ SQL_COMMANDS:
                 goods_name = past_delivery_data.goods_name )
         where
             goods_type is null"
-    update_deliver_status_up_to_date: "REPLACE INTO
-        deliver_status
-        select
-            past_delivery.last_deliver_date,
-            past_delivery.serial,
-            past_delivery.goods_name,
-            past_delivery.goods_type,
-            0 status
-        from
-            (
-            SELECT
-                DATE(substr(past_delivery_data.arrive_date, 1, 10)) last_deliver_date, past_delivery_data.serial, past_delivery_data.goods_name, past_delivery_data.goods_type, 0 status
-            FROM
-                past_delivery_data
-            GROUP BY
-                past_delivery_data.serial, past_delivery_data.goods_name
-            HAVING
-                MAX(past_delivery_data.arrive_date) ) past_delivery
-        EXCEPT 
-            SELECT last_deliver_date,
-                serial_number serial,
-                goods_name,
-                goods_type,
-                0 status
-            from deliver_status"
-    delete_view_two_days_level_diff: DROP VIEW IF EXISTS two_days_level_diff;
+    update_deliver_status_up_to_date: "REPLACE INTO deliver_status 
+        SELECT
+            DATE('NOW') AS last_update_date,
+            c."Serial Number" AS serial_number,
+            '黑' AS 'goods_type',
+            CASE WHEN "Black Level" >= 0 THEN "Black Level" ELSE 'N/A' END product_level,
+            CASE WHEN "Black Level" <= 30 
+            AND (SELECT need_refill FROM deliver_status AS d WHERE c."Serial Number" = d.serial_number and goods_type = d.goods_type) = 0 
+            AND "Black Level" - (SELECT product_level FROM deliver_status AS d WHERE c."Serial Number" = d.serial_number and goods_type = d.goods_type) < 0
+            THEN 1 ELSE 0 END 'need_refill'
+        FROM
+            consumable_levels as c
+        WHERE "Black Level" != 'N/A'"
+    get_need_deliver_report: select * from need_deliver_report
+

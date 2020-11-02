@@ -18,6 +18,7 @@ CREATE TABLE deliver_status (
     last_update_date TEXT,
     serial_number TEXT,
     goods_type TEXT,
+	goods_name TEXT,
     need_refill INTEGER DEFAULT 0,
 	need_refill_count INTEGER DEFAULT 0,
     PRIMARY KEY(serial_number, goods_type)
@@ -82,178 +83,87 @@ CREATE TABLE consumable_levels (
     PRIMARY KEY(`Report Content DateTime`, `Serial Number`)
 )
 
-# 昨天的紀錄
-select *, DATE(substr(`Report Content DateTime`, 7, 4) ||
-	'-' ||
-	substr(`Report Content DateTime`, 1, 2) ||
-	'-' ||
-	substr(`Report Content DateTime`, 4, 2)
-	)  as 'datetime'
-from consumable_levels where datetime = DATE('NOW','-1 DAY')
-
-# [嘗試][做成VIEW][可能有效能問題] 
-# 撈出比前一天(範例中以2020-10-28為基準，往前算一天) level 要小(表示有使用)或低於閥值(範例中為30)的顏色，若數值沒變動則設為 N/A
-CREATE VIEW two_days_level_diff AS 
-select
-	*
-from
-	(
-	select
-		DISTINCT today.`Serial Number`, today.datetime,
-		case
-			when yesterday.`Black Level` - today.`Black Level` >= 1
-            and today.`Black Level` <= {level_threshold} - 1 
-			or yesterday.`Black Level` = 0
-            then today.`Black Level`
-			else 'N/A'
-		END `Black Level`,
-		case
-			when yesterday.`Cyan Level` - today.`Cyan Level` >= 1 
-            and today.`Cyan Level` <= {level_threshold} - 1
-			or yesterday.`Cyan Level` = 0
-            then today.`Cyan Level`
-			else 'N/A'
-		END `Cyan Level`,
-		case
-			when yesterday.`Magenta Level` - today.`Magenta Level` >= 1 
-            and today.`Magenta Level` <= {level_threshold} - 1
-			or yesterday.`Magenta Level` = 0
-            then today.`Magenta Level`
-			else 'N/A'
-		END `Magenta Level`,
-		case
-			when yesterday.`Cyan Drum Level` - today.`Cyan Drum Level` >= 1 
-            and today.`Cyan Drum Level` <= {level_threshold} - 1
-			or yesterday.`Cyan Drum Level` = 0
-            then today.`Cyan Drum Level`
-			else 'N/A'
-		END `Cyan Drum Level`,
-		case
-			when yesterday.`Yellow Drum Level` - today.`Yellow Drum Level` >= 1 
-            and today.`Yellow Drum Level` <= {level_threshold} - 1
-            or yesterday.`Yellow Drum Level` = 0
-            then today.`Yellow Drum Level`
-			else 'N/A'
-		END `Yellow Drum Level`,
-		case
-			when yesterday.`Magenta Drum Level` - today.`Magenta Drum Level` >= 1 
-            and today.`Magenta Drum Level` <= {level_threshold} - 1
-            or yesterday.`Magenta Drum Level` = 0
-            then today.`Magenta Drum Level`
-			else 'N/A'
-		END `Magenta Drum Level`,
-		case
-			when yesterday.`Black Drum Level` - today.`Black Drum Level` >= 1 
-            and today.`Black Drum Level` <= {level_threshold} - 1
-            or yesterday.`Black Drum Level` = 0
-            then today.`Black Drum Level`
-			else 'N/A'
-		END `Black Drum Level`,
-		case
-			when yesterday.`Drum Kit Level` - today.`Drum Kit Level` >= 1 
-            and today.`Drum Kit Level` <= {level_threshold} - 1
-            or yesterday.`Drum Kit Level` = 0
-            then today.`Drum Kit Level`
-			else 'N/A'
-		END `Drum Kit Level`,
-		case
-			when yesterday.`Transfer Kit Level` - today.`Transfer Kit Level` >= 1 
-            and today.`Transfer Kit Level` <= {level_threshold} - 1
-            or yesterday.`Transfer Kit Level` = 0
-            then today.`Transfer Kit Level`
-			else 'N/A'
-		END `Transfer Kit Level`,
-		case
-			when yesterday.`Fuser Kit Level` - today.`Fuser Kit Level` >= 1 
-            and today.`Fuser Kit Level` <= {level_threshold} - 1
-            or yesterday.`Fuser Kit Level` = 0
-            then today.`Fuser Kit Level`
-			else 'N/A'
-		END `Fuser Kit Level`,
-		case
-			when yesterday.`Cleaning Kit Level` - today.`Cleaning Kit Level` >= 1 
-            and today.`Cleaning Kit Level` <= {level_threshold} - 1
-            or yesterday.`Cleaning Kit Level` = 0
-            then today.`Cleaning Kit Level`
-			else 'N/A'
-		END `Cleaning Kit Level`,
-		case
-			when yesterday.`Maintenance Combo Kit Level` - today.`Maintenance Combo Kit Level` >= 1 
-            and today.`Maintenance Combo Kit Level` <= {level_threshold} - 1
-            or yesterday.`Maintenance Combo Kit Level` = 0
-            then today.`Maintenance Combo Kit Level`
-			else 'N/A'
-		END `Maintenance Combo Kit Level`,
-		case
-			when yesterday.`Document Feeder Kit Level` - today.`Document Feeder Kit Level` >= 1 
-            and today.`Document Feeder Kit Level` <= {level_threshold} - 1
-            or yesterday.`Document Feeder Kit Level` = 0
-            then today.`Document Feeder Kit Level`
-			else 'N/A'
-		END `Document Feeder Kit Level`,
-		case
-			when yesterday.`Roller Level` - today.`Roller Level` >= 1 
-            and today.`Roller Level` <= {level_threshold} - 1
-            or yesterday.`Roller Level` = 0
-            then today.`Roller Level`
-			else 'N/A'
-		END `Roller Level`
-	from
-		(
-		select
-			DATE(substr(`Report Content DateTime`, 7, 4) || '-' || substr(`Report Content DateTime`, 1, 2) || '-' || substr(`Report Content DateTime`, 4, 2) ) datetime, *
-		from
-			consumable_levels
-		where
-			datetime = Date('NOW', '-1 day')) yesterday, (
-		select
-			DATE(substr(`Report Content DateTime`, 7, 4) || '-' || substr(`Report Content DateTime`, 1, 2) || '-' || substr(`Report Content DateTime`, 4, 2) ) datetime, *
-		from
-			consumable_levels
-		where
-			datetime = Date('NOW')) today
-	where
-		yesterday.`Serial Number` = today.`Serial Number` )
-
+# [做成VIEW] 建立需要派送的清單
+CREATE VIEW need_deliver_report AS SELECT DISTINCT
+    c.`Product Model Name` AS '機型',
+    d.serial_number AS '序號',
+    c.`Asset Number` AS '資產編號',
+    MAX(d.goods_name) AS '品項',
+    d.goods_type AS '品名',
+    c.`Site` AS '所在地',
+    c.`Region` AS '地區',
+    c.`Customer Name` AS '客戶',
+    c.`Building` AS '所屬大樓',
+    c.`Level` AS '樓層',
+    c.`Usage Count Date` AS '最後用量資訊收集時間'
+FROM consumable_levels AS c
+JOIN deliver_status AS d ON d.serial_number = c.`Serial Number`
+WHERE d.need_refill = 1 AND d.need_refill_count = 0
+GROUP BY d.serial_number, d.goods_type;
 
 # 用已知的 goods_type 去填補 past_delivery_data 中 goods_type 為 NULL 的欄位
-update
+UPDATE
 	past_delivery_data
-set
+SET
 	goods_type = (
-	select
+	SELECT
 		goods_type
-	from
+	FROM
 		(
-		select
+		SELECT
 			goods_type, goods_name
-		from
+		FROM
 			past_delivery_data
-		where
-			goods_type is not null
+		WHERE
+			goods_type IS NOT NULL
 		group by
 			goods_name)
-	where
+	WHERE
 		goods_name = past_delivery_data.goods_name )
-where
-	goods_type is null
+WHERE
+	goods_type IS NULL
 
-# 尋找某個序號的最後配送時間及配送的產品
-select
-	serial,
-	Date(substr(arrive_date , 1, 10)) last_deliver_date,
-	goods_name,
-	goods_type
-from
-	past_delivery_data
-where
-	serial = 'AABBCC'
-order by
-	last_deliver_date
-desc
-limit 1
+# 更新 deliver_status 指定 序號 機器的指定 品項 的 need_refill 與 need_refill_count 值
+# 這邊的邏輯是 need_refill 如果是需要
 
-# 將過去有的資訊剔除，只找出 past_delivery 中新出現的資料，之後需要 insert or replace 至 deliver_status 中，且將 need_refill 設為 -1
+# [INSERT deliver_status] 若不存在此序號機器，新增至 deliver_status
+INSERT OR IGNORE INTO deliver_status 
+SELECT
+	DATE('NOW') AS last_update_date,
+	c."Serial Number" AS serial_number,
+	'黑' AS 'goods_type',
+	(SELECT goods_name FROM past_delivery_data WHERE "serial" = c."Serial Number" AND goods_type = '黑') AS goods_name,
+	0 need_refill,
+	0 need_refill_count
+FROM
+	consumable_levels AS c
+WHERE "Black Level" != 'N/A'
+
+# [UPDATE deliver_status] 判斷該序號機器是否需要派送並更新狀態
+UPDATE deliver_status SET
+	last_update_date = DATE('NOW'),
+	need_refill = CASE WHEN (SELECT "Black Level" FROM consumable_levels WHERE serial_number = 'CNB1KCM22C') <= 29 THEN 1 ELSE 0 END,
+	need_refill_count = CASE WHEN need_refill = 1 THEN need_refill_count + 1 ELSE need_refill END
+WHERE serial_number = 'CNB1KCM22C'
+AND goods_type = '黑'
+
+# [REPLACE product_level] 更新所有的應該追蹤的產品的用量
+REPLACE INTO product_level 
+SELECT
+	DATE('NOW') AS last_update_date,
+	c."Serial Number" AS serial_number,
+	'黑' AS 'goods_type',
+	CASE WHEN "Black Level" >= 0 THEN "Black Level" ELSE 'N/A' END product_level
+FROM
+	consumable_levels AS c
+WHERE "Black Level" != 'N/A'
+
+
+
+
+
+==========廢棄邏輯=========
+# 將過去有的資訊剔除，只找出 past_delivery 中新出現的資料，之後需要 insert or replace 至 deliver_status 中
 REPLACE INTO deliver_status 
 SELECT
 	DATE('NOW') AS last_update_date,
@@ -268,8 +178,32 @@ FROM
 	consumable_levels as c
 WHERE "Black Level" != 'N/A'
 
+# 尋找某個序號的最後配送時間及配送的產品
+SELECT
+	serial,
+	DATE(substr(arrive_date , 1, 10)) last_deliver_date,
+	goods_name,
+	goods_type
+FROM
+	past_delivery_data
+WHERE
+	serial = 'AABBCC'
+ORDER BY
+	last_deliver_date
+DESC
+LIMIT 1
+
 # 刪除 VIEW
 DROP VIEW IF EXISTS two_days_level_diff;
+
+# 昨天的紀錄
+SELECT *, DATE(substr(`Report Content DateTime`, 7, 4) ||
+	'-' ||
+	substr(`Report Content DateTime`, 1, 2) ||
+	'-' ||
+	substr(`Report Content DateTime`, 4, 2)
+	)  as 'datetime'
+FROM consumable_levels WHERE datetime = DATE('NOW','-1 DAY')
 
 # 查詢所有需要被關注又有數據的品項
 SELECT
@@ -420,27 +354,3 @@ WHERE "Black Level" != 'N/A'
 -- FROM
 -- 	consumable_levels as c
 -- WHERE product_level != 'N/A'
-
-# 若不存在此序號機器，新增至 deliver_status
-INSERT OR IGNORE INTO deliver_status 
-SELECT
-	c."Serial Number" AS serial_number,
-	'黑' AS 'goods_type',
-	0 need_refill,
-	0 need_refill_count
-FROM
-	consumable_levels as c
-WHERE "Black Level" != 'N/A'
-
-# 更新所有的應該追蹤的產品的用量
-REPLACE INTO product_level 
-SELECT
-	DATE('NOW') AS last_update_date,
-	c."Serial Number" AS serial_number,
-	'黑' AS 'goods_type',
-	CASE WHEN "Black Level" >= 0 THEN "Black Level" ELSE 'N/A' END product_level
-FROM
-	consumable_levels as c
-WHERE "Black Level" != 'N/A'
-
-# 依據目前用量以及先前的寄送狀態判斷此次是否需要寄送

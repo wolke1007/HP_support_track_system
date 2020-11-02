@@ -8,6 +8,7 @@ from zipfile import BadZipfile
 from pandas import read_excel
 import sqlite3
 import time
+import traceback
 
 
 def load_config():
@@ -148,7 +149,7 @@ def set_deliver_status(db_conn):
         15: "roller"
     }
     cur = db_conn.cursor()
-    for row in cur.execute(SQL_COMMANDS.get('two_days_level_diff')):
+    for row in cur.execute(SQL_COMMANDS.get('get_need_deliver_report')):
         # update deliver_status if need
         print(row)
         goods_need_refill = []
@@ -229,8 +230,8 @@ if __name__ == '__main__':
         config = load_config()
         validate_config(config)
         LEVEL_THRESHOLD = config.get('LEVEL_THRESHOLD')
-        delete_view_command = SQL_COMMANDS.get('delete_view_two_days_level_diff').format(level_threshold=str(LEVEL_THRESHOLD))
-        create_view_command = SQL_COMMANDS.get('reset_db_commands').get('create_view_two_days_level_diff').format(level_threshold=str(LEVEL_THRESHOLD))
+        delete_view_command = SQL_COMMANDS.get('delete_view_get_need_deliver_report').format(level_threshold=str(LEVEL_THRESHOLD))
+        create_view_command = SQL_COMMANDS.get('reset_db_commands').get('create_view_get_need_deliver_report').format(level_threshold=str(LEVEL_THRESHOLD))
         cur.execute(delete_view_command)
         time.sleep(1)
         cur.execute(create_view_command)
@@ -250,8 +251,9 @@ if __name__ == '__main__':
         cur = db_conn.cursor()
         sql_command = SQL_COMMANDS.get('fill_known_goods_type')
         cur.execute(sql_command)
-        sql_command = SQL_COMMANDS.get('update_deliver_status_up_to_date')
-        cur.execute(sql_command)
+        # 更新寄送資訊
+        # sql_command = SQL_COMMANDS.get('update_deliver_status_up_to_date')
+        # cur.execute(sql_command)
         db_conn.commit()
         cur.close()
         print("[INFO] end of import past devier data...")
@@ -284,7 +286,7 @@ if __name__ == '__main__':
         create_db_commands = SQL_COMMANDS.get('reset_db_commands')
         for key in create_db_commands.keys():
             sql_command = create_db_commands.get(key)
-            if (key == "create_view_two_days_level_diff"):
+            if (key == "create_view_get_need_deliver_report"):
                 sql_command = create_db_commands.get(key).format(level_threshold=str(LEVEL_THRESHOLD))
             cur.execute(sql_command)
             time.sleep(1)
@@ -324,7 +326,7 @@ if __name__ == '__main__':
             func(db_conn)  # 執行選取的邏輯
             db_conn.close()
         except  Exception as e:
-            print(e)
+            traceback.print_exc()
             input("exception occur!\n"
               "press Enter key to close this window...")
             exit(1)

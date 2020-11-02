@@ -9,8 +9,8 @@ SELECT DISTINCT
     c.`Customer Name` AS '客戶',
     c.`Building` AS '所屬大樓',
     c.`Level` AS '樓層',
-    c.`Usage Count Date` AS '最後用量資訊收集時間'
+    c.`Usage Count Date` AS '最後用量資訊收集時間',
 FROM consumable_levels AS c
 JOIN deliver_status AS d ON d.serial_number = c.`Serial Number`
-WHERE d.need_refill = 1
+WHERE d.need_refill = 1 AND d.need_refill_count = 0
 GROUP BY d.serial_number, d.goods_type;
