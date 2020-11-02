@@ -174,15 +174,20 @@ SQL_COMMANDS:
     # args: serial_number, goods_type
     insert_deliver_status_with_2args: replace into deliver_status (serial_number, goods_type) values ('{serial_number}', '{goods_type}')
     # args: column_name, serial_number, threshold, goods_type
-    # TODO: 需補齊其他顏色
     update_deliver_status_with_4args: "UPDATE deliver_status SET
             last_update_date = DATE('NOW'),
             need_refill = CASE WHEN (SELECT \"{column_name}\" FROM consumable_levels WHERE \"Serial Number\" = '{serial_number}') <= {threshold} - 1 THEN 1 ELSE 0 END,
             need_refill_count = CASE WHEN need_refill = 1 THEN need_refill_count + 1 ELSE need_refill END
         WHERE serial_number = '{serial_number}'
         AND goods_type = '{goods_type}'"
+    first_time_update_deliver_status_with_4args: "UPDATE deliver_status SET
+            last_update_date = DATE('NOW'),
+            need_refill = CASE WHEN (SELECT \"{column_name}\" FROM consumable_levels WHERE \"Serial Number\" = '{serial_number}') <= {threshold} - 1 
+            AND (SELECT COUNT(serial) FROM past_delivery_data WHERE serial = '{serial_number}') = 0 THEN 1 ELSE 0 END,
+            need_refill_count = CASE WHEN need_refill = 1 THEN need_refill_count + 1 ELSE need_refill END
+        WHERE serial_number = '{serial_number}'
+        AND goods_type = '{goods_type}'"
     # args: column_name, serial_number, goods_type
-    # TODO: 需補齊其他顏色
     reset_need_refill_count_with_3args: "UPDATE deliver_status SET
             last_update_date = DATE('NOW'),
             need_refill_count = CASE WHEN 
@@ -213,7 +218,6 @@ SQL_COMMANDS:
         where
             goods_type is null"
     # args: goods_type, column_name
-    # TODO: 需補齊其他顏色
     insert_or_ignore_deliver_status_with_2args: "INSERT OR IGNORE INTO deliver_status 
         SELECT
             DATE('NOW') AS last_update_date,
@@ -226,7 +230,6 @@ SQL_COMMANDS:
             consumable_levels AS c
         WHERE \"{column_name}\" != 'N/A'"
     # args: goods_type, column_name
-    # TODO: 需補齊其他顏色
     update_product_level_with_2args: "REPLACE INTO product_level 
         SELECT
             DATE('NOW') AS last_update_date,

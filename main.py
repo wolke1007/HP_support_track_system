@@ -9,6 +9,7 @@ from pandas import read_excel
 import sqlite3
 import time
 import traceback
+from sys import exit
 
 
 def load_config():
@@ -21,7 +22,7 @@ def load_config():
     except FileNotFoundError:
         input("[ERROR] config.yaml not found!\n"
               "press Enter key to close this window...")
-        exit(1)
+        exit()
     return config
 
 def validate_config(config):
@@ -40,7 +41,7 @@ def validate_config(config):
             print('[ERROR] main key missing! please check key: {key} is exist in config.yaml'.format(
                 key=key))
             input("press Enter key to close this window...")
-            exit(1)
+            exit()
 
 def _past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, sheet_first_row:list):
     """
@@ -52,7 +53,7 @@ def _past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, sh
     if(not path.isdir(directory_path)):
         input("[ERROR] directory {} not found!\n"
               "press Enter key to close this window...".format(directory_path))
-        exit(1)
+        exit()
     combined_sheet.active.append((cell for cell in sheet_first_row))
     for file_name in listdir(directory_path):
         if(file_name == ".DS_Store"):
@@ -64,7 +65,7 @@ def _past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, sh
         except BadZipfile:
             input("[ERROR] file {file_name} still open, close it first!\n"
               "press Enter key to close this window...".format(file_name=file_name))
-            exit(1)
+            exit()
         sheet = read_file.active
         row_cnt = 0
         for row in sheet.rows:
@@ -91,7 +92,7 @@ def _consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str
     if(not path.isdir(directory_path)):
         input("[ERROR] directory {} not found!\n"
               "press Enter key to close this window...".format(directory_path))
-        exit(1)
+        exit()
     
     combined_sheet.active.append((cell for cell in sheet_first_row))
     for file_name in listdir(directory_path):
@@ -104,7 +105,7 @@ def _consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str
         except BadZipfile:
             input("[ERROR] file {file_name} still open, close it first!\n"
               "press Enter key to close this window...".format(file_name=file_name))
-            exit(1)
+            exit()
         sheet = read_file.active
         row_cnt = 0
         report_content_date = 0
@@ -207,6 +208,34 @@ def update_product_level(db_conn):
     cur.close()
     print("[INFO] end of update_product_level...")
 
+def first_time_update_deliver_status(db_conn):
+    """
+    第一次執行，需排除掉 past_delivery 中的機器不派送
+    更新派送狀態並確認如果已經填充過就 reset need_refill_count 避免重複派送
+    """
+    print("[INFO] beging first_time_update_deliver_status...")
+    cur = db_conn.cursor()
+    get_all_serial_number = SQL_COMMANDS.get('get_all_serial_number')
+    serial_numbers = cur.execute(get_all_serial_number).fetchall()
+    for info in COLUMN_NAME_AND_GOODS_TYPE:
+        for serial_number in serial_numbers:
+            column_name = info[0]
+            goods_type = info[1]
+            sql_command = SQL_COMMANDS.get('first_time_update_deliver_status_with_4args').format(
+            column_name=column_name,
+            serial_number=serial_number[0], 
+            threshold=LEVEL_THRESHOLD,
+            goods_type=goods_type)
+            cur.execute(sql_command)
+            sql_command =  SQL_COMMANDS.get('reset_need_refill_count_with_3args').format(
+                column_name=column_name,
+                serial_number=serial_number[0],
+                goods_type=goods_type)
+            cur.execute(sql_command)
+    db_conn.commit()
+    cur.close()
+    print("[INFO] end of first_time_update_deliver_status...")
+
 def update_deliver_status(db_conn):
     """
     更新派送狀態並確認如果已經填充過就 reset need_refill_count 避免重複派送
@@ -251,6 +280,23 @@ def get_deliver_status(db_conn):
     get_need_refill_sheet(EXPORT_QUERY_COMMAND)
     print("[INFO] end of update and deliver status")
 
+def first_time_get_deliver_status(db_conn):
+    print("[INFO] begin update and get deliver status")
+    # 更新 past_delivery_data
+    import_past_deliver(db_conn)
+    # 更新 consumable_level
+    import_consumable_levels(db_conn)
+    # 新增舊的 deliver_status table 中沒有的機器
+    insert_or_ignore_deliver_status(db_conn)
+    # 趁此時 consumable_levels 的值是今天的，而 product_level 的值是昨天的
+    # 來設定 deliver_status need_refill 的值
+    first_time_update_deliver_status(db_conn)
+    # 將今天的數值填進 product_level 中
+    update_product_level(db_conn)
+    # 取 view table 結束這回合
+    get_need_refill_sheet(EXPORT_QUERY_COMMAND)
+    print("[INFO] end of update and deliver status")
+
 def reset_db(db_conn):
     print("[INFO] beging db reset...")
     db_conn.close()
@@ -272,7 +318,7 @@ def reset_db(db_conn):
 
 def exit_program(arg):
     input("exit program, press Enter to close window....")
-    exit(1)
+    exit()
 
 def test(db_conn):
     update_deliver_status(db_conn)
@@ -309,6 +355,7 @@ if __name__ == '__main__':
         ("Roller Level", "roller")
     ]
     function_list = {
+        "0": first_time_get_deliver_status,
         "1": get_deliver_status,
         "2": apply_settings,
         "3": reset_db,  # delete all tables and views
@@ -317,6 +364,7 @@ if __name__ == '__main__':
 
     while True:
         choose = input("請輸入功能代號:\n"
+        "0. 第一次執行更新並取得應派送設備表單(將會排除曾經派送清單中的機器)\n"
         "1. 更新並取得應派送設備表單\n"
         "(將會匯入檔案且過檔名將會改成 imported_ 開頭，並無法再次匯入)\n"
         "2. 套用新設定(閥值)，需要再使用功能 1 才能產出根據新閥值計算的設備表單\n"
@@ -331,7 +379,7 @@ if __name__ == '__main__':
                 "過去的紀錄將全部消失，此操作將無法還原，請問要繼續嗎?\ny/n\n"
                 "選擇: ")
                 if delete == "n":
-                    exit(0)
+                    exit
                 if delete == "y":
                     break
         try:
@@ -341,5 +389,5 @@ if __name__ == '__main__':
             traceback.print_exc()
             input("exception occur!\n"
               "press Enter key to close this window...")
-            exit(1)
+            exit()
         
