@@ -32,6 +32,10 @@
    5. 創建全新 DB
       > 刪除原本 DB 並創建全新 DB
 
+## 備註
+1. 防毒軟體會擋因為有建立檔案(db file)跟更改檔案(db file and excel rename)的動作，可能需要開權限
+2. 使用 pyinstall 打包，需要用 pyinstaller main.spec --onefile 指令，因為 pandas bug 的關係
+
 ##### 技術部分參考以下網頁內容：
 * https://www.runoob.com/sqlite/sqlite-tutorial.html
 * https://towardsdatascience.com/turn-your-excel-workbook-into-a-sqlite-database-bc6d4fd206aa

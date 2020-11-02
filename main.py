@@ -124,88 +124,6 @@ def _consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str
         replace(path.join(directory_path, file_name), path.join(directory_path, "imported_"+file_name))
     combined_sheet.save(combined_sheet_name + ".xlsx")
 
-def set_deliver_status(db_conn):
-    """
-    檢查昨天與今天的墨水或耗材用量是否有減少
-    如果有減少，或是低於閥值則列出
-    並去檢查是否需要配送，若未配送過則設為 TRUE
-    """
-    goods_type_dict = {
-        # ('AAAABBBBB', '2020-10-30', 0, 'N/A', 29, 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A')
-        # 0 是序號，1 是日期不需要
-        2: "黑",
-        3: "藍",
-        4: "紅",
-        5: "藍鼓",
-        6: "黃鼓",
-        7: "紅鼓",
-        8: "黑鼓",
-        9: "drum kit",
-        10: "transfer kit",
-        11: "fuser kit",
-        12: "clean kit",
-        13: "maintainace combo kit",
-        14: "document feeder kit",
-        15: "roller"
-    }
-    cur = db_conn.cursor()
-    for row in cur.execute(SQL_COMMANDS.get('get_need_deliver_report')):
-        # update deliver_status if need
-        print(row)
-        goods_need_refill = []
-        for i in range(len(row)):
-            if i > 1 and row[i] != 'N/A':  # 0 是序號，1 是日期不需要
-                goods_need_refill.append(goods_type_dict[i])
-        print("goods_need_refill:")
-        print(goods_need_refill)
-        cur2 = db_conn.cursor()
-        check_need_refill = SQL_COMMANDS.get('check_need_refill_with_2args')
-        
-        for goods in goods_need_refill:
-            result = cur2.execute(
-                check_need_refill.format(serial_number=row[0], goods_type=goods)
-                ).fetchone()
-        
-            if (result is None):
-                print("==============================================")
-                print("序號:[{serial}] 的零件:[{goods_type}] 尚未有派送資料".format(serial=row[0],goods_type=goods))
-                print("==============================================")
-                # 在 deliver_status 新增一欄，但只填上序號與品項(查 goods_type 的表)
-                index = 0
-                cur3 = db_conn.cursor()
-                for query_item in row:
-                    if type(query_item) is int:  # 這邊姑且使用數字來判斷是否有值，其他的序號、日期、N/A 皆為文字
-                        goods_type = goods_type_dict.get(index)
-                        insert_deliver_status = SQL_COMMANDS.get('insert_deliver_status_with_2args').format(serial_number=row[0], goods_type=goods_type)
-                        print("debug sql: " + insert_deliver_status)
-                        print("insert deliver_status")
-                        cur3.execute(insert_deliver_status)
-                    index+=1
-                db_conn.commit()
-                cur3.close()
-            else:
-                print("==============================================")
-                print("序號:[{serial}] 的零件:[{goods_type}] 已有派送資料".format(serial=row[0],goods_type=goods))
-                if (result[0] == True):
-                    print("當前 need_refill 已經是 True，不進行動作")
-                    print("==============================================")
-                if (result[0] == False):
-                    print("當前 need_refill 為 False，將設為 True")
-                    print("==============================================")
-                    index = 0
-                    cur3 = db_conn.cursor()
-                    for query_item in row:
-                        if type(query_item) is int:  # 這邊姑且使用數字來判斷是否有值，其他的序號、日期、N/A 皆為文字
-                            goods_type = goods_type_dict.get(index)
-                            update_deliver_status = SQL_COMMANDS.get('update_deliver_status_with_2args').format(serial_number=row[0], goods_type=goods_type)
-                            print("debug sql: " + update_deliver_status)
-                            cur3.execute(update_deliver_status)
-                        index+=1
-                    db_conn.commit()
-                    cur3.close()
-        cur2.close()
-    cur.close()
-
 def get_need_refill_sheet(command):
     """
     取 view table
@@ -259,9 +177,14 @@ def import_consumable_levels(db_conn):
 def insert_or_ignore_deliver_status(db_conn):
     print("[INFO] beging import insert_or_ignore_deliver_status...")
     cur = db_conn.cursor()
-    sql_command = SQL_COMMANDS.get('insert_or_ignore_deliver_status')
-    print("debug sql: " + sql_command)
-    cur.execute(sql_command)
+    for info in COLUMN_NAME_AND_GOODS_TYPE:
+        column_name = info[0]
+        goods_type = info[1]
+        sql_command = SQL_COMMANDS.get('insert_or_ignore_deliver_status_with_2args').format(
+            goods_type=goods_type, 
+            column_name=column_name
+        )
+        cur.execute(sql_command)
     db_conn.commit()
     cur.close()
     print("[INFO] end of import insert_or_ignore_deliver_status...")
@@ -272,8 +195,14 @@ def update_product_level(db_conn):
     """
     print("[INFO] beging update_product_level...")
     cur = db_conn.cursor()
-    sql_command = SQL_COMMANDS.get('update_product_level')
-    cur.execute(sql_command)
+    for info in COLUMN_NAME_AND_GOODS_TYPE:
+        column_name = info[0]
+        goods_type = info[1]
+        sql_command = SQL_COMMANDS.get('update_product_level_with_2args').format(
+            goods_type=goods_type, 
+            column_name=column_name
+        )
+        cur.execute(sql_command)
     db_conn.commit()
     cur.close()
     print("[INFO] end of update_product_level...")
@@ -286,16 +215,21 @@ def update_deliver_status(db_conn):
     cur = db_conn.cursor()
     get_all_serial_number = SQL_COMMANDS.get('get_all_serial_number')
     serial_numbers = cur.execute(get_all_serial_number).fetchall()
-    cur.close()
-    cur = db_conn.cursor()
-    for serial_number in serial_numbers:
-        sql_command = SQL_COMMANDS.get('update_deliver_status_with_2args').format(
-        serial_number=serial_number[0], 
-        threshold=LEVEL_THRESHOLD)
-        cur.execute(sql_command)
-        sql_command =  SQL_COMMANDS.get('reset_need_refill_count_with_arg').format(
-            serial_number=serial_number[0])
-        cur.execute(sql_command)
+    for info in COLUMN_NAME_AND_GOODS_TYPE:
+        for serial_number in serial_numbers:
+            column_name = info[0]
+            goods_type = info[1]
+            sql_command = SQL_COMMANDS.get('update_deliver_status_with_4args').format(
+            column_name=column_name,
+            serial_number=serial_number[0], 
+            threshold=LEVEL_THRESHOLD,
+            goods_type=goods_type)
+            cur.execute(sql_command)
+            sql_command =  SQL_COMMANDS.get('reset_need_refill_count_with_3args').format(
+                column_name=column_name,
+                serial_number=serial_number[0],
+                goods_type=goods_type)
+            cur.execute(sql_command)
     db_conn.commit()
     cur.close()
     print("[INFO] end of update_deliver_status...")
@@ -336,6 +270,10 @@ def reset_db(db_conn):
     cur.close()
     print("[INFO] end of db reset...")
 
+def exit_program(arg):
+    input("exit program, press Enter to close window....")
+    exit(1)
+
 def test(db_conn):
     update_deliver_status(db_conn)
 
@@ -353,12 +291,28 @@ if __name__ == '__main__':
     DB_NAME = config.get('DB_NAME')
     SQL_COMMANDS = config.get('SQL_COMMANDS')
     EXPORT_QUERY_COMMAND = config.get('EXPORT_QUERY_COMMAND')
+    COLUMN_NAME_AND_GOODS_TYPE = [
+        ("Black Level", "黑"),
+        ("Cyan Level", "藍"),
+        ("Magenta Level", "紅"),
+        ("Yellow Level", "黃"),
+        ("Black Drum Level", "黑鼓"),
+        ("Cyan Drum Level", "藍鼓"),
+        ("Magenta Drum Level", "紅鼓"),
+        ("Yellow Drum Level", "黃鼓"),
+        ("Drum Kit Level", "drum kit"),
+        ("Transfer Kit Level", "transfer kit"),
+        ("Fuser Kit Level", "fuser kit"),
+        ("Cleaning Kit Level", "clean kit"),
+        ("Maintenance Combo Kit Level", "maintainace combo kit"),
+        ("Document Feeder Kit Level", "document feeder kit"),
+        ("Roller Level", "roller")
+    ]
     function_list = {
         "1": get_deliver_status,
         "2": apply_settings,
         "3": reset_db,  # delete all tables and views
-        "4": exit,
-        "5": test
+        "4": exit_program
     }
 
     while True:
@@ -366,9 +320,8 @@ if __name__ == '__main__':
         "1. 更新並取得應派送設備表單\n"
         "(將會匯入檔案且過檔名將會改成 imported_ 開頭，並無法再次匯入)\n"
         "2. 套用新設定(閥值)，需要再使用功能 1 才能產出根據新閥值計算的設備表單\n"
-        "3. 創建全新 DB(!注意!原 DB 將被完整刪除，資料將不能恢復)\n"
+        "3. 刪除AND創建全新DB(!注意!原 DB 將被完整刪除，資料將不能恢復)\n"
         "4. 退出程式\n"
-        "5. DEBUG\n"
         "選擇: ")
         db_conn = sqlite3.connect(DB_NAME)
         func = function_list.get(choose, lambda x: print("Invalid number!\n\n"))
@@ -382,8 +335,6 @@ if __name__ == '__main__':
                 if delete == "y":
                     break
         try:
-            if func is exit:
-                exit(1)
             func(db_conn)  # 執行選取的邏輯
             db_conn.close()
         except  Exception as e:
