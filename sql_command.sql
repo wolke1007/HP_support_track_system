@@ -123,8 +123,17 @@ SET
 WHERE
 	goods_type IS NULL
 
-# 更新 deliver_status 指定 序號 機器的指定 品項 的 need_refill 與 need_refill_count 值
-# 這邊的邏輯是 need_refill 如果是需要
+# 更新 deliver_status 的 need_refill_count 如果今天的值(consumable_level)比前一天值(product_level)大
+# 那代表有充填過，所以 need_refill_count 歸零
+UPDATE deliver_status SET
+	last_update_date = DATE('NOW'),
+	need_refill_count = CASE WHEN 
+	(SELECT "Black Level" FROM consumable_levels WHERE "Serial Number" = 'CNBKL2TD52')
+	>
+	(SELECT product_level FROM product_level WHERE serial_number = 'CNBKL2TD52')
+	THEN 0 ELSE need_refill_count END
+WHERE serial_number = 'CNBKL2TD52'
+AND goods_type = '黑'
 
 # [INSERT deliver_status] 若不存在此序號機器，新增至 deliver_status
 INSERT OR IGNORE INTO deliver_status 

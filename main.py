@@ -42,7 +42,7 @@ def validate_config(config):
             input("press Enter key to close this window...")
             exit(1)
 
-def past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, sheet_first_row:list):
+def _past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, sheet_first_row:list):
     """
     將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
     """
@@ -80,7 +80,7 @@ def past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, she
         replace(path.join(directory_path, file_name), path.join(directory_path, "imported_"+file_name))
     combined_sheet.save(combined_sheet_name + ".xlsx")
 
-def consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str, sheet_first_row:list):
+def _consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str, sheet_first_row:list):
     """
     將資料夾內客戶閥值資料整理成可匯入 SQLite 的格式
     每個檔案需先取出第二列的時間，並新增一叫做 content_date 的 column 並全填上剛取到的時間
@@ -159,7 +159,7 @@ def set_deliver_status(db_conn):
         print("goods_need_refill:")
         print(goods_need_refill)
         cur2 = db_conn.cursor()
-        check_need_refill = SQL_COMMANDS.get('check_need_refill')
+        check_need_refill = SQL_COMMANDS.get('check_need_refill_with_2args')
         
         for goods in goods_need_refill:
             result = cur2.execute(
@@ -176,7 +176,7 @@ def set_deliver_status(db_conn):
                 for query_item in row:
                     if type(query_item) is int:  # 這邊姑且使用數字來判斷是否有值，其他的序號、日期、N/A 皆為文字
                         goods_type = goods_type_dict.get(index)
-                        insert_deliver_status = SQL_COMMANDS.get('insert_deliver_status').format(serial_number=row[0], goods_type=goods_type)
+                        insert_deliver_status = SQL_COMMANDS.get('insert_deliver_status_with_2args').format(serial_number=row[0], goods_type=goods_type)
                         print("debug sql: " + insert_deliver_status)
                         print("insert deliver_status")
                         cur3.execute(insert_deliver_status)
@@ -197,7 +197,7 @@ def set_deliver_status(db_conn):
                     for query_item in row:
                         if type(query_item) is int:  # 這邊姑且使用數字來判斷是否有值，其他的序號、日期、N/A 皆為文字
                             goods_type = goods_type_dict.get(index)
-                            update_deliver_status = SQL_COMMANDS.get('update_deliver_status').format(serial_number=row[0], goods_type=goods_type)
+                            update_deliver_status = SQL_COMMANDS.get('update_deliver_status_with_2args').format(serial_number=row[0], goods_type=goods_type)
                             print("debug sql: " + update_deliver_status)
                             cur3.execute(update_deliver_status)
                         index+=1
@@ -207,12 +207,142 @@ def set_deliver_status(db_conn):
     cur.close()
 
 def get_need_refill_sheet(command):
+    """
+    取 view table
+    """
     system(command)
     print("need_refill.csv 表格已生成")
+
+def apply_settings(db_conn):
+    """
+    重取 config 中的 threshold 數值
+    """
+    print("[INFO] beging apply settings")
+    cur = db_conn.cursor()
+    config = load_config()
+    validate_config(config)
+    LEVEL_THRESHOLD = config.get('LEVEL_THRESHOLD')
+    cur.close()
+    print("[INFO] end of apply settings")
+    
+def import_past_deliver(db_conn):
+    print("[INFO] beging import past devier data...")
+    # 將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
+    _past_delivery_data_to_excel(PAST_DELIVERY_DATA_PATH, COMBINED_PAST_DELIVERY_SHEET_NAME, PAST_DELIVERY_SHEET_FIRST_ROW)
+    excel_file = read_excel(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx",
+                                        sheet_name='Sheet',
+                                        header=0)
+    #將通整好的 excel 匯入至 SQLite 中
+    excel_file.to_sql('past_delivery_data', db_conn, if_exists='append', index=False)
+    # 用已知的 goods_type 去填補 past_delivery_data 中 goods_type 為 NULL 的欄位
+    cur = db_conn.cursor()
+    sql_command = SQL_COMMANDS.get('fill_known_goods_type')
+    cur.execute(sql_command)
+    # 更新寄送資訊
+    # sql_command = SQL_COMMANDS.get('update_deliver_status_up_to_date')
+    # cur.execute(sql_command)
+    db_conn.commit()
+    cur.close()
+    print("[INFO] end of import past devier data...")
+
+def import_consumable_levels(db_conn):
+    print("[INFO] beging import consumable levels data...")
+    # 將資料夾內客戶閥值資料整理成可匯入 SQLite 的格式
+    _consumable_levels_data_to_excel(CONSUMABLE_LEVELS_DATA_PATH, COMBINED_CONSUMABLE_LEVELS_SHEET_NAME, CONSUMABLE_LEVELS_SHEET_FIRST_ROW)
+    excel_file = read_excel(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx",
+                                        sheet_name='Sheet',
+                                        header=0)
+    #將通整好的 excel 匯入至 SQLite 中
+    excel_file.to_sql('consumable_levels', db_conn, if_exists='append', index=False)
+    print("[INFO] end of  import consumable levels data...")
+
+def insert_or_ignore_deliver_status(db_conn):
+    print("[INFO] beging import insert_or_ignore_deliver_status...")
+    cur = db_conn.cursor()
+    sql_command = SQL_COMMANDS.get('insert_or_ignore_deliver_status')
+    print("debug sql: " + sql_command)
+    cur.execute(sql_command)
+    db_conn.commit()
+    cur.close()
+    print("[INFO] end of import insert_or_ignore_deliver_status...")
+
+def update_product_level(db_conn):
+    """
+    更新產品用量
+    """
+    print("[INFO] beging update_product_level...")
+    cur = db_conn.cursor()
+    sql_command = SQL_COMMANDS.get('update_product_level')
+    cur.execute(sql_command)
+    db_conn.commit()
+    cur.close()
+    print("[INFO] end of update_product_level...")
+
+def update_deliver_status(db_conn):
+    """
+    更新派送狀態並確認如果已經填充過就 reset need_refill_count 避免重複派送
+    """
+    print("[INFO] beging update_deliver_status...")
+    cur = db_conn.cursor()
+    get_all_serial_number = SQL_COMMANDS.get('get_all_serial_number')
+    serial_numbers = cur.execute(get_all_serial_number).fetchall()
+    cur.close()
+    cur = db_conn.cursor()
+    for serial_number in serial_numbers:
+        sql_command = SQL_COMMANDS.get('update_deliver_status_with_2args').format(
+        serial_number=serial_number[0], 
+        threshold=LEVEL_THRESHOLD)
+        cur.execute(sql_command)
+        sql_command =  SQL_COMMANDS.get('reset_need_refill_count_with_arg').format(
+            serial_number=serial_number[0])
+        cur.execute(sql_command)
+    db_conn.commit()
+    cur.close()
+    print("[INFO] end of update_deliver_status...")
+
+def get_deliver_status(db_conn):
+    print("[INFO] begin update and get deliver status")
+    # 更新 past_delivery_data
+    import_past_deliver(db_conn)
+    # 更新 consumable_level
+    import_consumable_levels(db_conn)
+    # 新增舊的 deliver_status table 中沒有的機器
+    insert_or_ignore_deliver_status(db_conn)
+    # 趁此時 consumable_levels 的值是今天的，而 product_level 的值是昨天的
+    # 來設定 deliver_status need_refill 的值
+    update_deliver_status(db_conn)
+    # 將今天的數值填進 product_level 中
+    update_product_level(db_conn)
+    # 取 view table 結束這回合
+    get_need_refill_sheet(EXPORT_QUERY_COMMAND)
+    print("[INFO] end of update and deliver status")
+
+def reset_db(db_conn):
+    print("[INFO] beging db reset...")
+    db_conn.close()
+    remove(DB_NAME)
+    f = open(DB_NAME, "a")
+    f.close()
+    new_db_conn = sqlite3.connect(DB_NAME)
+    cur = new_db_conn.cursor()
+    create_db_commands = SQL_COMMANDS.get('reset_db_commands')
+    for key in create_db_commands.keys():
+        sql_command = create_db_commands.get(key)
+        if (key == "create_view_get_need_deliver_report"):
+            sql_command = create_db_commands.get(key).format(level_threshold=str(LEVEL_THRESHOLD))
+        print("[INFO] proccessing {command}".format(command=key))
+        cur.execute(sql_command)
+        time.sleep(1)
+    cur.close()
+    print("[INFO] end of db reset...")
+
+def test(db_conn):
+    update_deliver_status(db_conn)
 
 if __name__ == '__main__':
     config = load_config()
     validate_config(config)
+    global LEVEL_THRESHOLD
     LEVEL_THRESHOLD = config.get('LEVEL_THRESHOLD')
     PAST_DELIVERY_DATA_PATH = config.get('DIRECTORY_PATH').get('past_delivery_data')
     CONSUMABLE_LEVELS_DATA_PATH = config.get('DIRECTORY_PATH').get('consumable_levels_data')
@@ -223,106 +353,37 @@ if __name__ == '__main__':
     DB_NAME = config.get('DB_NAME')
     SQL_COMMANDS = config.get('SQL_COMMANDS')
     EXPORT_QUERY_COMMAND = config.get('EXPORT_QUERY_COMMAND')
-
-    def apply_settings(db_conn):
-        print("[INFO] beging apply settings")
-        cur = db_conn.cursor()
-        config = load_config()
-        validate_config(config)
-        LEVEL_THRESHOLD = config.get('LEVEL_THRESHOLD')
-        delete_view_command = SQL_COMMANDS.get('delete_view_get_need_deliver_report').format(level_threshold=str(LEVEL_THRESHOLD))
-        create_view_command = SQL_COMMANDS.get('reset_db_commands').get('create_view_get_need_deliver_report').format(level_threshold=str(LEVEL_THRESHOLD))
-        cur.execute(delete_view_command)
-        time.sleep(1)
-        cur.execute(create_view_command)
-        cur.close()
-        print("[INFO] end of apply settings")
-    
-    def import_past_deliver(db_conn):
-        print("[INFO] beging import past devier data...")
-        # 將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
-        past_delivery_data_to_excel(PAST_DELIVERY_DATA_PATH, COMBINED_PAST_DELIVERY_SHEET_NAME, PAST_DELIVERY_SHEET_FIRST_ROW)
-        excel_file = read_excel(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx",
-                                            sheet_name='Sheet',
-                                            header=0)
-        #將通整好的 excel 匯入至 SQLite 中
-        excel_file.to_sql('past_delivery_data', db_conn, if_exists='append', index=False)
-        # 用已知的 goods_type 去填補 past_delivery_data 中 goods_type 為 NULL 的欄位
-        cur = db_conn.cursor()
-        sql_command = SQL_COMMANDS.get('fill_known_goods_type')
-        cur.execute(sql_command)
-        # 更新寄送資訊
-        # sql_command = SQL_COMMANDS.get('update_deliver_status_up_to_date')
-        # cur.execute(sql_command)
-        db_conn.commit()
-        cur.close()
-        print("[INFO] end of import past devier data...")
-    
-    def import_consumable_levels(db_conn):
-        print("[INFO] beging import consumable levels data...")
-        # 將資料夾內客戶閥值資料整理成可匯入 SQLite 的格式
-        consumable_levels_data_to_excel(CONSUMABLE_LEVELS_DATA_PATH, COMBINED_CONSUMABLE_LEVELS_SHEET_NAME, CONSUMABLE_LEVELS_SHEET_FIRST_ROW)
-        excel_file = read_excel(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx",
-                                            sheet_name='Sheet',
-                                            header=0)
-        #將通整好的 excel 匯入至 SQLite 中
-        excel_file.to_sql('consumable_levels', db_conn, if_exists='append', index=False)
-        print("[INFO] end of  import consumable levels data...")
-    
-    def get_deliver_status(db_conn):
-        print("[INFO] begin get deliver status")
-        set_deliver_status(db_conn)
-        get_need_refill_sheet(EXPORT_QUERY_COMMAND)
-        print("[INFO] end of deliver status")
-    
-    def reset_db(db_conn):
-        print("[INFO] beging db reset...")
-        db_conn.close()
-        remove(DB_NAME)
-        f = open(DB_NAME, "a")
-        f.close()
-        new_db_conn = sqlite3.connect(DB_NAME)
-        cur = new_db_conn.cursor()
-        create_db_commands = SQL_COMMANDS.get('reset_db_commands')
-        for key in create_db_commands.keys():
-            sql_command = create_db_commands.get(key)
-            if (key == "create_view_get_need_deliver_report"):
-                sql_command = create_db_commands.get(key).format(level_threshold=str(LEVEL_THRESHOLD))
-            cur.execute(sql_command)
-            time.sleep(1)
-        cur.close()
-        print("[INFO] end of db reset...")
-
     function_list = {
-        "1": import_consumable_levels,
-        "2": import_past_deliver,
-        "3": get_deliver_status,
-        "4": apply_settings,
-        "5": reset_db  # delete all tables and views
+        "1": get_deliver_status,
+        "2": apply_settings,
+        "3": reset_db,  # delete all tables and views
+        "4": exit,
+        "5": test
     }
 
     while True:
         choose = input("請輸入功能代號:\n"
-        "1. 匯入目前設備用量清單(匯入過檔名將會改成 imported_ 開頭，並無法再次匯入)\n"
-        "2. 匯入過去派送紀錄(匯入過檔名將會改成 imported_ 開頭，並無法再次匯入)\n"
-        "3. 取得應派送設備表單\n"
-        "4. 套用新設定(閥值)\n"
-        "5. 創建全新 DB(!注意!原 DB 將被完整刪除，資料將不能恢復)\n"
-        "6. 退出程式\n")
-        if choose == "5":
+        "1. 更新並取得應派送設備表單\n"
+        "(將會匯入檔案且過檔名將會改成 imported_ 開頭，並無法再次匯入)\n"
+        "2. 套用新設定(閥值)，需要再使用功能 1 才能產出根據新閥值計算的設備表單\n"
+        "3. 創建全新 DB(!注意!原 DB 將被完整刪除，資料將不能恢復)\n"
+        "4. 退出程式\n"
+        "5. DEBUG\n"
+        "選擇: ")
+        db_conn = sqlite3.connect(DB_NAME)
+        func = function_list.get(choose, lambda x: print("Invalid number!\n\n"))
+        if func is reset_db:
             while True:
                 delete = input("此選擇將會刪除整個 DB 並另起一個新的資料庫\n"
-                "過去的紀錄將全部消失，此操作將無法還原，請問要繼續嗎?\ny/n\n")
+                "過去的紀錄將全部消失，此操作將無法還原，請問要繼續嗎?\ny/n\n"
+                "選擇: ")
                 if delete == "n":
                     exit(0)
                 if delete == "y":
                     break
-        if choose == "6":
-            print("exit program.")
-            break
         try:
-            db_conn = sqlite3.connect(DB_NAME)
-            func = function_list.get(choose, lambda x: print("Invalid number!\n\n"))
+            if func is exit:
+                exit(1)
             func(db_conn)  # 執行選取的邏輯
             db_conn.close()
         except  Exception as e:
