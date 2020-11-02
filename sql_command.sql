@@ -15,12 +15,20 @@ CREATE TABLE past_delivery_data (
 )
 
 CREATE TABLE deliver_status (
-    last_deliver_date TEXT,
+    last_update_date TEXT,
     serial_number TEXT,
-    goods_name TEXT,
     goods_type TEXT,
-    need_refill INTEGER DEFAULT 1,
-    PRIMARY KEY(serial_number, goods_name, goods_type)
+    need_refill INTEGER DEFAULT 0,
+	need_refill_count INTEGER DEFAULT 0,
+    PRIMARY KEY(serial_number, goods_type)
+)
+
+CREATE TABLE product_level (
+    last_update_date TEXT,
+    serial_number TEXT,
+    goods_type TEXT,
+    product_level INTEGER,
+    PRIMARY KEY(serial_number, goods_type)
 )
 
 CREATE TABLE consumable_levels (
@@ -245,32 +253,194 @@ order by
 desc
 limit 1
 
-# 將過去有的資訊剔除，只找出 past_delivery 中新出現的資料，之後需要 insert or replace 至 deliver_status 中，且將 need_refill 設為 FALSE
-REPLACE INTO
-deliver_status
-select
-	past_delivery.last_deliver_date,
-	past_delivery.serial,
-	past_delivery.goods_name,
-	past_delivery.goods_type,
-	FALSE status
-from
-	(
-	SELECT
-		DATE(substr(past_delivery_data.arrive_date, 1, 10)) last_deliver_date, past_delivery_data.serial, past_delivery_data.goods_name, past_delivery_data.goods_type, 0 status
-	FROM
-		past_delivery_data
-	GROUP BY
-		past_delivery_data.serial, past_delivery_data.goods_name
-	HAVING
-		MAX(past_delivery_data.arrive_date) ) past_delivery
-EXCEPT 
-	SELECT last_deliver_date,
-		serial_number serial,
-		goods_name,
-		goods_type,
-		FALSE status
-	from deliver_status
+# 將過去有的資訊剔除，只找出 past_delivery 中新出現的資料，之後需要 insert or replace 至 deliver_status 中，且將 need_refill 設為 -1
+REPLACE INTO deliver_status 
+SELECT
+	DATE('NOW') AS last_update_date,
+	c."Serial Number" AS serial_number,
+	'黑' AS 'goods_type',
+	CASE WHEN "Black Level" >= 0 THEN "Black Level" ELSE 'N/A' END product_level,
+	CASE WHEN "Black Level" <= 30 
+	AND (SELECT need_refill FROM deliver_status AS d WHERE c."Serial Number" = d.serial_number and goods_type = d.goods_type) = 0 
+	AND "Black Level" - (SELECT product_level FROM deliver_status AS d WHERE c."Serial Number" = d.serial_number and goods_type = d.goods_type) < 0
+	THEN 1 ELSE 0 END 'need_refill'
+FROM
+	consumable_levels as c
+WHERE "Black Level" != 'N/A'
 
 # 刪除 VIEW
 DROP VIEW IF EXISTS two_days_level_diff;
+
+# 查詢所有需要被關注又有數據的品項
+SELECT
+	DATE('NOW') AS last_update_date,
+	c."Serial Number" AS serial_number,
+	'黑' AS 'goods_type',
+	CASE WHEN "Black Level" >= 0	THEN "Black Level" ELSE 'N/A' END product_level
+FROM
+	consumable_levels as c
+WHERE "Black Level" != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'藍' AS 'goods_type',
+-- 	CASE WHEN "Cyan Level" >= 0	THEN "Cyan Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'紅' AS 'goods_type',
+-- 	CASE WHEN "Magenta Level" >= 0	THEN "Magenta Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'黃' AS 'goods_type',
+-- 	CASE WHEN "Yellow Level" >= 0	THEN "Yellow Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'黑鼓' AS 'goods_type',
+-- 	CASE WHEN "Black Drum Level" >= 0	THEN "Black Drum Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'藍鼓' AS 'goods_type',
+-- 	CASE WHEN "Cyan Drum Level" >= 0	THEN "Cyan Drum Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'紅鼓' AS 'goods_type',
+-- 	CASE WHEN "Magenta Drum Level" >= 0	THEN "Magenta Drum Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'黃鼓' AS 'goods_type',
+-- 	CASE WHEN "Yellow Drum Level" >= 0	THEN "Yellow Drum Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'Drum Kit' AS 'goods_type',
+-- 	CASE WHEN "Drum Kit Level" >= 0	THEN "Drum Kit Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'Transfer Kit' AS 'goods_type',
+-- 	CASE WHEN "Transfer Kit Level" >= 0	THEN "Transfer Kit Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'Fuser Kit' AS 'goods_type',
+-- 	CASE WHEN "Fuser Kit Level" >= 0 THEN "Fuser Kit Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'Cleaning Kit' AS 'goods_type',
+-- 	CASE WHEN "Cleaning Kit Level" >= 0 THEN "Cleaning Kit Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'Maintenance Combo Kit' AS 'goods_type',
+-- 	CASE WHEN "Maintenance Combo Kit Level" >= 0 THEN "Maintenance Combo Kit Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'Document Feeder Kit' AS 'goods_type',
+-- 	CASE WHEN "Document Feeder Kit Level" >= 0 THEN "Document Feeder Kit Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+-- UNION ALL
+-- SELECT
+-- 	DATE('NOW') AS last_update_date,
+-- 	c."Serial Number" AS serial_number,
+-- 	'Roller' AS 'goods_type',
+-- 	CASE WHEN "Roller Level" >= 0 THEN "Roller Level" ELSE 'N/A' END product_level,
+-- 	0 need_deliver
+-- FROM
+-- 	consumable_levels as c
+-- WHERE product_level != 'N/A'
+
+# 若不存在此序號機器，新增至 deliver_status
+INSERT OR IGNORE INTO deliver_status 
+SELECT
+	c."Serial Number" AS serial_number,
+	'黑' AS 'goods_type',
+	0 need_refill,
+	0 need_refill_count
+FROM
+	consumable_levels as c
+WHERE "Black Level" != 'N/A'
+
+# 更新所有的應該追蹤的產品的用量
+REPLACE INTO product_level 
+SELECT
+	DATE('NOW') AS last_update_date,
+	c."Serial Number" AS serial_number,
+	'黑' AS 'goods_type',
+	CASE WHEN "Black Level" >= 0 THEN "Black Level" ELSE 'N/A' END product_level
+FROM
+	consumable_levels as c
+WHERE "Black Level" != 'N/A'
+
+# 依據目前用量以及先前的寄送狀態判斷此次是否需要寄送
