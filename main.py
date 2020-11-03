@@ -292,7 +292,7 @@ def first_time_get_deliver_status(db_conn):
     import_past_deliver(db_conn)
     # 更新 consumable_level
     import_consumable_levels(db_conn)
-    # 第一次跑不跑這項 新增舊的 deliver_status table 中沒有的機器
+    # 新增舊的 deliver_status table 中沒有的機器
     insert_or_ignore_deliver_status(db_conn)
     # 將今天的數值填進 product_level 中
     update_product_level(db_conn)
@@ -383,9 +383,9 @@ if __name__ == '__main__':
                 delete = input("此選擇將會刪除整個 DB 並另起一個新的資料庫\n"
                 "過去的紀錄將全部消失，此操作將無法還原，請問要繼續嗎?\ny/n\n"
                 "選擇: ")
-                if delete == "n":
+                if delete == "n" or delete == "N":
                     exit()
-                if delete == "y":
+                if delete == "y" or delete == "Y":
                     break
         try:
             func(db_conn)  # 執行選取的邏輯
