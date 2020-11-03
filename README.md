@@ -35,6 +35,7 @@
 ## 備註
 1. 防毒軟體會擋因為有建立檔案(db file)跟更改檔案(db file and excel rename)的動作，可能需要開權限
 2. 使用 pyinstall 打包，需要用 pyinstaller main.spec --onefile 指令，因為 pandas bug 的關係
+3. 目前匯入的檔案格式支援 xlsx，尚未支援其他格式
 
 ##### 技術部分參考以下網頁內容：
 * https://www.runoob.com/sqlite/sqlite-tutorial.html
