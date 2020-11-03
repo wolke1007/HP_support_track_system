@@ -160,6 +160,7 @@ SQL_COMMANDS:
                 c.`Asset Number` AS '資產編號',
                 MAX(d.goods_name) AS '品項',
                 d.goods_type AS '品名',
+                (SELECT product_level FROM product_level WHERE serial_number == d.serial_number AND goods_type == d.goods_type) AS '當前用量',
                 c.`Site` AS '所在地',
                 c.`Region` AS '地區',
                 c.`Customer Name` AS '客戶',
