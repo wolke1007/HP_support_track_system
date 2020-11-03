@@ -47,6 +47,7 @@ def _past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, sh
     """
     將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
     """
+    print("[INFO] beging _past_delivery_data_to_excel")
     first_row = None
     combined_sheet = openpyxl.Workbook()
     combined_sheet.create_sheet()
@@ -80,6 +81,7 @@ def _past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, sh
         # 此檔案匯入結束，於檔名前面加入 prefix
         replace(path.join(directory_path, file_name), path.join(directory_path, "imported_"+file_name))
     combined_sheet.save(combined_sheet_name + ".xlsx")
+    print("[INFO] end of _past_delivery_data_to_excel")
 
 def _consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str, sheet_first_row:list):
     """
@@ -87,6 +89,7 @@ def _consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str
     每個檔案需先取出第二列的時間，並新增一叫做 content_date 的 column 並全填上剛取到的時間
     然後刪除第一與第二列
     """
+    print("[INFO] beging _consumable_levels_data_to_excel")
     combined_sheet = openpyxl.Workbook()
     combined_sheet.create_sheet()
     if(not path.isdir(directory_path)):
@@ -124,15 +127,20 @@ def _consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str
         # 此檔案匯入結束，於檔名前面加入 prefix
         replace(path.join(directory_path, file_name), path.join(directory_path, "imported_"+file_name))
     combined_sheet.save(combined_sheet_name + ".xlsx")
+    print("[INFO] end of _consumable_levels_data_to_excel")
 
 def get_need_refill_sheet(command):
     """
     取 view table
     """
-    if(path.isfile("need_refill.csv")):
-        remove("need_refill.csv")
+    print("[INFO] beging get_need_refill_sheet")
+    csv_file_name = datetime.now().strftime("%Y-%m-%d") + "_need_refill.csv"
+    if(path.isfile(csv_file_name)):
+        remove(csv_file_name)
+        print("[INFO] 舊有表格" + csv_file_name + " 表格已刪除")
     system(command)
-    print("need_refill.csv 表格已生成")
+    print("[INFO] " + csv_file_name + " 表格已生成")
+    print("[INFO] end of get_need_refill_sheet")
 
 def apply_settings(db_conn):
     """
@@ -283,7 +291,7 @@ def get_deliver_status(db_conn):
     # 將今天的數值填進 product_level 中
     update_product_level(db_conn)
     # 取 view table 結束這回合
-    get_need_refill_sheet(EXPORT_QUERY_COMMAND)
+    get_need_refill_sheet(export_query_command)
     print("[INFO] end of update and deliver status")
 
 def first_time_get_deliver_status(db_conn):
@@ -299,7 +307,7 @@ def first_time_get_deliver_status(db_conn):
     # 來設定 deliver_status need_refill 的值
     first_time_update_deliver_status(db_conn)
     # 取 view table 結束這回合
-    get_need_refill_sheet(EXPORT_QUERY_COMMAND)
+    get_need_refill_sheet(export_query_command)
     print("[INFO] end of update and deliver status")
 
 def reset_db(db_conn):
@@ -341,7 +349,7 @@ if __name__ == '__main__':
     CONSUMABLE_LEVELS_SHEET_FIRST_ROW = config.get('SHEET_FIRST_ROW').get('consumable_levels_data')
     DB_NAME = config.get('DB_NAME')
     SQL_COMMANDS = config.get('SQL_COMMANDS')
-    EXPORT_QUERY_COMMAND = config.get('EXPORT_QUERY_COMMAND')
+    export_query_command = config.get('export_query_command_with_arg').format(date=datetime.now().strftime("%Y-%m-%d"))
     COLUMN_NAME_AND_GOODS_TYPE = [
         ("Black Level", "黑"),
         ("Cyan Level", "藍"),

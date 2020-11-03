@@ -7,7 +7,8 @@ DIRECTORY_PATH:
 COMBINED_SHEET_NAME: 
     past_delivery: combined_past_delivery_sheet
     consumable_levels: combined_consumable_levels_sheet
-EXPORT_QUERY_COMMAND: sqlite3 -header -csv database.db < query_need_refill.sql > need_refill.csv
+# args: date
+export_query_command_with_arg: sqlite3 -header -csv database.db < sql/query_need_refill.sql > {date}_need_refill.csv
 SHEET_FIRST_ROW:
     past_delivery_data:
         - serial
@@ -187,7 +188,8 @@ SQL_COMMANDS:
             AND (SELECT COUNT(serial) FROM past_delivery_data WHERE serial = '{serial_number}') = 0 THEN 1 ELSE 0 END,
             need_refill_count = CASE WHEN need_refill = 1 THEN need_refill_count + 1 ELSE need_refill END
         WHERE serial_number = '{serial_number}'
-        AND goods_type = '{goods_type}'"
+        AND goods_type = '{goods_type}'
+        AND last_update_date != DATE('NOW')"
     # args: column_name, serial_number, goods_type
     reset_need_refill_count_with_3args: "UPDATE deliver_status SET
             last_update_date = DATE('NOW'),
@@ -239,7 +241,6 @@ SQL_COMMANDS:
             CASE WHEN \"{column_name}\" >= 0 THEN \"{column_name}\" ELSE 'N/A' END product_level
         FROM
             consumable_levels AS c
-        WHERE \"{column_name}\" != 'N/A'
-        AND last_update_date != DATE('NOW')"
+        WHERE \"{column_name}\" != 'N/A'"
     get_need_deliver_report: SELECT * FROM need_deliver_report
     get_all_serial_number: SELECT serial_number FROM deliver_status GROUP BY serial_number

@@ -7,3 +7,5 @@ __pycache__
 *.sqbpro
 
 need_refill.csv
+
+*.csv
