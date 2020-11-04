@@ -172,16 +172,23 @@ SQL_COMMANDS:
             WHERE d.need_refill = 1 AND d.need_refill_count = 0
             GROUP BY d.serial_number, d.goods_type;"
         create_table_config: "CREATE TABLE config (
-            threshold INTEGER)"
+            threshold,
+            PRIMARY KEY(threshold))"
+        # args: threshold
+        insert_threshold: INSERT OR IGNORE INTO config (threshold) VALUES (0)
     # args: serial_number, goods_type
     check_need_refill_with_2args: SELECT need_refill FROM deliver_status WHERE serial_number = '{serial_number}' and goods_type = '{goods_type}'
     # args: threshold
-    update_threshold_with_arg: UPDATE config SET threshold = {threshold} WHERE threshold != {threshold}
+    update_threshold_with_arg: UPDATE config SET threshold = {threshold} WHERE threshold = (SELECT threshold FROM config) AND threshold != {threshold}
     # args: serial_number, goods_type
     insert_deliver_status_with_2args: REPLACE INTO deliver_status (serial_number, goods_type) VALUES ('{serial_number}', '{goods_type}')
-    reset_date_of_deliver_status: "UPDATE last_update_date SET
-            last_update_date = '0000-00-00'
-        WHERE last_update_date = DATE('NOW')"
+    # 將需要重新判斷的設備 last_update_date 洗成 default
+    reset_date_of_deliver_status: "UPDATE deliver_status SET
+            last_update_date = '0000-00-00',
+            need_refill = 0
+        WHERE last_update_date = DATE('NOW')
+        AND need_refill = 1
+        AND need_refill_count = 0"
     # args: column_name, serial_number, goods_type
     update_deliver_status_with_3args: "UPDATE deliver_status SET
             last_update_date = DATE('NOW'),
@@ -197,9 +204,7 @@ SQL_COMMANDS:
             need_refill_count = CASE WHEN need_refill = 1 THEN need_refill_count + 1 ELSE need_refill END
         WHERE serial_number = '{serial_number}'
         AND goods_type = '{goods_type}'
-        AND last_update_date != DATE('NOW')
-        AND need_refill = 0
-        AND need_refill_count = 0"
+        AND last_update_date != DATE('NOW')"
     # args: column_name, serial_number, goods_type
     first_time_update_deliver_status_with_3args: "UPDATE deliver_status SET
             last_update_date = DATE('NOW'),

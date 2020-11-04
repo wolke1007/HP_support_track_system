@@ -47,7 +47,7 @@ def _past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, sh
     """
     將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
     """
-    print("[INFO] beging _past_delivery_data_to_excel")
+    print("[INFO] Begin _past_delivery_data_to_excel")
     first_row = None
     combined_sheet = openpyxl.Workbook()
     combined_sheet.create_sheet()
@@ -81,7 +81,7 @@ def _past_delivery_data_to_excel(directory_path:str, combined_sheet_name:str, sh
         # 此檔案匯入結束，於檔名前面加入 prefix
         replace(path.join(directory_path, file_name), path.join(directory_path, "imported_"+file_name))
     combined_sheet.save(combined_sheet_name + ".xlsx")
-    print("[INFO] end of _past_delivery_data_to_excel")
+    print("[INFO] End of _past_delivery_data_to_excel")
 
 def _consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str, sheet_first_row:list):
     """
@@ -89,7 +89,7 @@ def _consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str
     每個檔案需先取出第二列的時間，並新增一叫做 content_date 的 column 並全填上剛取到的時間
     然後刪除第一與第二列
     """
-    print("[INFO] beging _consumable_levels_data_to_excel")
+    print("[INFO] Begin _consumable_levels_data_to_excel")
     combined_sheet = openpyxl.Workbook()
     combined_sheet.create_sheet()
     if(not path.isdir(directory_path)):
@@ -127,35 +127,34 @@ def _consumable_levels_data_to_excel(directory_path:str, combined_sheet_name:str
         # 此檔案匯入結束，於檔名前面加入 prefix
         replace(path.join(directory_path, file_name), path.join(directory_path, "imported_"+file_name))
     combined_sheet.save(combined_sheet_name + ".xlsx")
-    print("[INFO] end of _consumable_levels_data_to_excel")
+    print("[INFO] End of _consumable_levels_data_to_excel")
 
 def get_need_refill_sheet(command):
     """
     取 view table
     """
-    print("[INFO] beging get_need_refill_sheet")
+    print("[INFO] Begin get_need_refill_sheet")
     csv_file_name = datetime.now().strftime("%Y-%m-%d") + "_need_refill.csv"
     if(path.isfile(csv_file_name)):
         remove(csv_file_name)
         print("[INFO] 舊有表格" + csv_file_name + " 表格已刪除")
     system(command)
     print("[INFO] " + csv_file_name + " 表格已生成")
-    print("[INFO] end of get_need_refill_sheet")
+    print("[INFO] End of get_need_refill_sheet")
 
 def apply_settings(db_conn):
     """
     重取 config 中的 threshold 數值
     """
-    print("[INFO] beging apply settings")
-    cur = db_conn.cursor()
+    print("[INFO] Begin apply settings")
     config = load_config()
     validate_config(config)
+    global LEVEL_THRESHOLD
     LEVEL_THRESHOLD = config.get('LEVEL_THRESHOLD')
-    cur.close()
-    print("[INFO] end of apply settings")
+    print("[INFO] End of apply settings")
     
 def import_past_deliver(db_conn):
-    print("[INFO] beging import past devier data...")
+    print("[INFO] Begin import past devier data...")
     # 將資料夾內過去 60 天 mail 中已經配送過的資料整理成可匯入 SQLite 的格式
     _past_delivery_data_to_excel(PAST_DELIVERY_DATA_PATH, COMBINED_PAST_DELIVERY_SHEET_NAME, PAST_DELIVERY_SHEET_FIRST_ROW)
     excel_file = read_excel(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx",
@@ -165,19 +164,16 @@ def import_past_deliver(db_conn):
     excel_file.to_sql('past_delivery_data', db_conn, if_exists='append', index=False)
     # 用已知的 goods_type 去填補 past_delivery_data 中 goods_type 為 NULL 的欄位
     cur = db_conn.cursor()
-    sql_command = SQL_COMMANDS.get('fill_known_goods_type')
-    cur.execute(sql_command)
-    # 更新寄送資訊
-    # sql_command = SQL_COMMANDS.get('update_deliver_status_up_to_date')
-    # cur.execute(sql_command)
+    fill_known_goods_type = SQL_COMMANDS.get('fill_known_goods_type')
+    cur.execute(fill_known_goods_type)
     db_conn.commit()
     cur.close()
     if(path.isfile(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx")):
         remove(COMBINED_PAST_DELIVERY_SHEET_NAME + ".xlsx")
-    print("[INFO] end of import past devier data...")
+    print("[INFO] End of import past devier data...")
 
 def import_consumable_levels(db_conn):
-    print("[INFO] beging import consumable levels data...")
+    print("[INFO] Begin import consumable levels data...")
     # 將資料夾內客戶閥值資料整理成可匯入 SQLite 的格式
     _consumable_levels_data_to_excel(CONSUMABLE_LEVELS_DATA_PATH, COMBINED_CONSUMABLE_LEVELS_SHEET_NAME, CONSUMABLE_LEVELS_SHEET_FIRST_ROW)
     excel_file = read_excel(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx",
@@ -187,47 +183,47 @@ def import_consumable_levels(db_conn):
     excel_file.to_sql('consumable_levels', db_conn, if_exists='append', index=False)
     if(path.isfile(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx")):
         remove(COMBINED_CONSUMABLE_LEVELS_SHEET_NAME + ".xlsx")
-    print("[INFO] end of  import consumable levels data...")
+    print("[INFO] End of  import consumable levels data...")
 
 def insert_or_ignore_deliver_status(db_conn):
-    print("[INFO] beging import insert_or_ignore_deliver_status...")
+    print("[INFO] Begin import insert_or_ignore_deliver_status...")
     cur = db_conn.cursor()
     for info in COLUMN_NAME_AND_GOODS_TYPE:
         column_name = info[0]
         goods_type = info[1]
-        sql_command = SQL_COMMANDS.get('insert_or_ignore_deliver_status_with_2args').format(
+        insert_or_ignore_deliver_status = SQL_COMMANDS.get('insert_or_ignore_deliver_status_with_2args').format(
             goods_type=goods_type, 
             column_name=column_name
         )
-        cur.execute(sql_command)
+        cur.execute(insert_or_ignore_deliver_status)
     db_conn.commit()
     cur.close()
-    print("[INFO] end of import insert_or_ignore_deliver_status...")
+    print("[INFO] End of import insert_or_ignore_deliver_status...")
 
 def update_product_level(db_conn):
     """
     更新產品用量
     """
-    print("[INFO] beging update_product_level...")
+    print("[INFO] Begin update_product_level...")
     cur = db_conn.cursor()
     for info in COLUMN_NAME_AND_GOODS_TYPE:
         column_name = info[0]
         goods_type = info[1]
-        sql_command = SQL_COMMANDS.get('update_product_level_with_2args').format(
+        update_product_level = SQL_COMMANDS.get('update_product_level_with_2args').format(
             goods_type=goods_type, 
             column_name=column_name
         )
-        cur.execute(sql_command)
+        cur.execute(update_product_level)
     db_conn.commit()
     cur.close()
-    print("[INFO] end of update_product_level...")
+    print("[INFO] End of update_product_level...")
 
 def first_time_update_deliver_status(db_conn):
     """
     第一次執行，需排除掉 past_delivery 中的機器不派送
     更新派送狀態並確認如果已經填充過就 reset need_refill_count 避免重複派送
     """
-    print("[INFO] beging first_time_update_deliver_status...")
+    print("[INFO] Begin first_time_update_deliver_status...")
     cur = db_conn.cursor()
     get_all_serial_number = SQL_COMMANDS.get('get_all_serial_number')
     serial_numbers = cur.execute(get_all_serial_number).fetchall()
@@ -235,19 +231,19 @@ def first_time_update_deliver_status(db_conn):
         for serial_number in serial_numbers:
             column_name = info[0]
             goods_type = info[1]
-            sql_command = SQL_COMMANDS.get('first_time_update_deliver_status_with_3args').format(
+            first_time_update_deliver_status = SQL_COMMANDS.get('first_time_update_deliver_status_with_3args').format(
             column_name=column_name,
             serial_number=serial_number[0], 
             goods_type=goods_type)
-            cur.execute(sql_command)
-            sql_command =  SQL_COMMANDS.get('reset_need_refill_count_with_3args').format(
+            cur.execute(first_time_update_deliver_status)
+            reset_need_refill_count =  SQL_COMMANDS.get('reset_need_refill_count_with_3args').format(
                 column_name=column_name,
                 serial_number=serial_number[0],
                 goods_type=goods_type)
-            cur.execute(sql_command)
+            cur.execute(reset_need_refill_count)
     db_conn.commit()
     cur.close()
-    print("[INFO] end of first_time_update_deliver_status...")
+    print("[INFO] End of first_time_update_deliver_status...")
 
 def update_threshold(db_conn):
     """
@@ -255,42 +251,31 @@ def update_threshold(db_conn):
     若發現 threshold 有變動先把今天的 deliver_status 的時間洗掉
     然後用新的 threshold 跑 update_deliver_status_after_change_threshold
     """
-    print("[INFO] beging update_config_table...")
+    print("[INFO] Begin update_threshold...")
     cur = db_conn.cursor()
-    sql_command = SQL_COMMANDS.get('update_threshold_with_arg').format(threshold=LEVEL_THRESHOLD)
-    cur.execute(sql_command)
-    db_conn.commit()
+    update_threshold = SQL_COMMANDS.get('update_threshold_with_arg').format(threshold=LEVEL_THRESHOLD)
+    cur.execute(update_threshold)
     update_result = False
     if(cur.rowcount > 0):
-        reset_date_of_deliver_status = SQL_COMMANDS.get('reset_date_of_deliver_status').format(threshold=LEVEL_THRESHOLD)
-        cur.execute(sql_command)
-        db_conn.commit()
+        print("[INFO] Begin reset_date_of_deliver_status...")
+        reset_date_of_deliver_status = SQL_COMMANDS.get('reset_date_of_deliver_status')
+        cur.execute(reset_date_of_deliver_status)
         update_result = True
+        print("[INFO] End of reset_date_of_deliver_status...")
     cur.close()
-    print("[INFO] end of update_config_table...")
-    return update_result
-
-def get_config_table(db_conn):
-    """
-    取得 DB 中當前的閥值設定
-    """
-    print("[INFO] beging get_config_table...")
-    cur = db_conn.cursor()
-    sql_command = SQL_COMMANDS.get('update_threshold_with_arg').format(LEVEL_THRESHOLD)
-    cur.execute(sql_command)
     db_conn.commit()
-    cur.close()
-    print("[INFO] end of get_config_table...")
+    print("[INFO] End of update_threshold...")
+    return update_result
 
 def update_deliver_status_after_change_threshold(db_conn):
     """
     更換閥值後的更新派送狀態
     如果 need_refill or need_refill_count 已經大於 0 代表已經曾經寄送且還沒客戶還沒 refill
     那就算 threshold 再降低造成要寄送也不用再送了
-    但如果 threshold 提高，導致有一些反而高於閥值那已經寄送過的也來不及了所以不動作ＸＤ
+    但如果 threshold 提高，導致有一些反而高於閥值那已經寄送過的也來不及了所以不動作XD
     如果都是 0 表示還沒寄送過，那就用新的閥值再來判斷一次看有沒有需要寄送
     """
-    print("[INFO] beging update_deliver_status_after_change_threshold...")
+    print("[INFO] Begin update_deliver_status_after_change_threshold...")
     cur = db_conn.cursor()
     get_all_serial_number = SQL_COMMANDS.get('get_all_serial_number')
     serial_numbers = cur.execute(get_all_serial_number).fetchall()
@@ -298,25 +283,25 @@ def update_deliver_status_after_change_threshold(db_conn):
         for serial_number in serial_numbers:
             column_name = info[0]
             goods_type = info[1]
-            sql_command = SQL_COMMANDS.get('change_threshold_update_deliver_status_with_3args').format(
+            change_threshold_update_deliver_status = SQL_COMMANDS.get('change_threshold_update_deliver_status_with_3args').format(
             column_name=column_name,
             serial_number=serial_number[0], 
             goods_type=goods_type)
-            cur.execute(sql_command)
-            sql_command =  SQL_COMMANDS.get('reset_need_refill_count_with_3args').format(
+            cur.execute(change_threshold_update_deliver_status)
+            reset_need_refill_count =  SQL_COMMANDS.get('reset_need_refill_count_with_3args').format(
                 column_name=column_name,
                 serial_number=serial_number[0],
                 goods_type=goods_type)
-            cur.execute(sql_command)
+            cur.execute(reset_need_refill_count)
     db_conn.commit()
     cur.close()
-    print("[INFO] end of update_deliver_status_after_change_threshold...")
+    print("[INFO] End of update_deliver_status_after_change_threshold...")
 
 def update_deliver_status(db_conn):
     """
     更新派送狀態並確認如果已經填充過就 reset need_refill_count 避免重複派送
     """
-    print("[INFO] beging update_deliver_status...")
+    print("[INFO] Begin update_deliver_status...")
     cur = db_conn.cursor()
     get_all_serial_number = SQL_COMMANDS.get('get_all_serial_number')
     serial_numbers = cur.execute(get_all_serial_number).fetchall()
@@ -324,19 +309,19 @@ def update_deliver_status(db_conn):
         for serial_number in serial_numbers:
             column_name = info[0]
             goods_type = info[1]
-            sql_command = SQL_COMMANDS.get('update_deliver_status_with_3args').format(
+            update_deliver_status = SQL_COMMANDS.get('update_deliver_status_with_3args').format(
             column_name=column_name,
             serial_number=serial_number[0], 
             goods_type=goods_type)
-            cur.execute(sql_command)
-            sql_command =  SQL_COMMANDS.get('reset_need_refill_count_with_3args').format(
+            cur.execute(update_deliver_status)
+            reset_need_refill_count =  SQL_COMMANDS.get('reset_need_refill_count_with_3args').format(
                 column_name=column_name,
                 serial_number=serial_number[0],
                 goods_type=goods_type)
-            cur.execute(sql_command)
+            cur.execute(reset_need_refill_count)
     db_conn.commit()
     cur.close()
-    print("[INFO] end of update_deliver_status...")
+    print("[INFO] End of update_deliver_status...")
 
 def get_deliver_status(db_conn):
     print("[INFO] begin update and get deliver status")
@@ -357,7 +342,7 @@ def get_deliver_status(db_conn):
         update_product_level(db_conn)
     # 取 view table 結束這回合
     get_need_refill_sheet(export_query_command)
-    print("[INFO] end of update and deliver status")
+    print("[INFO] End of update and deliver status")
 
 def first_time_get_deliver_status(db_conn):
     print("[INFO] begin update and get deliver status")
@@ -367,16 +352,18 @@ def first_time_get_deliver_status(db_conn):
     import_consumable_levels(db_conn)
     # 新增舊的 deliver_status table 中沒有的機器
     insert_or_ignore_deliver_status(db_conn)
+    # 將閥值寫入
+    update_threshold(db_conn)
     # 將今天的數值填進 product_level 中
     update_product_level(db_conn)
     # 來設定 deliver_status need_refill 的值
     first_time_update_deliver_status(db_conn)
     # 取 view table 結束這回合
     get_need_refill_sheet(export_query_command)
-    print("[INFO] end of update and deliver status")
+    print("[INFO] End of update and deliver status")
 
 def reset_db(db_conn):
-    print("[INFO] beging db reset...")
+    print("[INFO] Begin db reset...")
     db_conn.close()
     remove(DB_NAME)
     f = open(DB_NAME, "a")
@@ -388,9 +375,9 @@ def reset_db(db_conn):
         sql_command = create_db_commands.get(key)
         print("[INFO] proccessing {command}".format(command=key))
         cur.execute(sql_command)
-        time.sleep(1)
     cur.close()
-    print("[INFO] end of db reset...")
+    new_db_conn.commit()
+    print("[INFO] End of db reset...")
 
 def exit_program(arg):
     input("exit program, press Enter to close window....")
@@ -402,7 +389,6 @@ def test(db_conn):
 if __name__ == '__main__':
     config = load_config()
     validate_config(config)
-    global LEVEL_THRESHOLD
     LEVEL_THRESHOLD = config.get('LEVEL_THRESHOLD')
     PAST_DELIVERY_DATA_PATH = config.get('DIRECTORY_PATH').get('past_delivery_data')
     CONSUMABLE_LEVELS_DATA_PATH = config.get('DIRECTORY_PATH').get('consumable_levels_data')
