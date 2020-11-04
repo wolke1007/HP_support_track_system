@@ -1,11 +1,15 @@
 database.db
-*.xlsx
 dist
 build
 __pycache__
 
 *.sqbpro
-
-need_refill.csv
-
 *.csv
+*.xlsx
+
+combined_consumable_levels_sheet.xlsx
+
+combined_past_delivery_sheet.xlsx
+
+!sample_file_past_delivery.xlsx
+!sample_file_consumable_levels.xlsx
