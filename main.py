@@ -235,10 +235,9 @@ def first_time_update_deliver_status(db_conn):
         for serial_number in serial_numbers:
             column_name = info[0]
             goods_type = info[1]
-            sql_command = SQL_COMMANDS.get('first_time_update_deliver_status_with_4args').format(
+            sql_command = SQL_COMMANDS.get('first_time_update_deliver_status_with_3args').format(
             column_name=column_name,
             serial_number=serial_number[0], 
-            threshold=LEVEL_THRESHOLD,
             goods_type=goods_type)
             cur.execute(sql_command)
             sql_command =  SQL_COMMANDS.get('reset_need_refill_count_with_3args').format(
@@ -249,6 +248,69 @@ def first_time_update_deliver_status(db_conn):
     db_conn.commit()
     cur.close()
     print("[INFO] end of first_time_update_deliver_status...")
+
+def update_threshold(db_conn):
+    """
+    更新閥值
+    若發現 threshold 有變動先把今天的 deliver_status 的時間洗掉
+    然後用新的 threshold 跑 update_deliver_status_after_change_threshold
+    """
+    print("[INFO] beging update_config_table...")
+    cur = db_conn.cursor()
+    sql_command = SQL_COMMANDS.get('update_threshold_with_arg').format(threshold=LEVEL_THRESHOLD)
+    cur.execute(sql_command)
+    db_conn.commit()
+    update_result = False
+    if(cur.rowcount > 0):
+        reset_date_of_deliver_status = SQL_COMMANDS.get('reset_date_of_deliver_status').format(threshold=LEVEL_THRESHOLD)
+        cur.execute(sql_command)
+        db_conn.commit()
+        update_result = True
+    cur.close()
+    print("[INFO] end of update_config_table...")
+    return update_result
+
+def get_config_table(db_conn):
+    """
+    取得 DB 中當前的閥值設定
+    """
+    print("[INFO] beging get_config_table...")
+    cur = db_conn.cursor()
+    sql_command = SQL_COMMANDS.get('update_threshold_with_arg').format(LEVEL_THRESHOLD)
+    cur.execute(sql_command)
+    db_conn.commit()
+    cur.close()
+    print("[INFO] end of get_config_table...")
+
+def update_deliver_status_after_change_threshold(db_conn):
+    """
+    更換閥值後的更新派送狀態
+    如果 need_refill or need_refill_count 已經大於 0 代表已經曾經寄送且還沒客戶還沒 refill
+    那就算 threshold 再降低造成要寄送也不用再送了
+    但如果 threshold 提高，導致有一些反而高於閥值那已經寄送過的也來不及了所以不動作ＸＤ
+    如果都是 0 表示還沒寄送過，那就用新的閥值再來判斷一次看有沒有需要寄送
+    """
+    print("[INFO] beging update_deliver_status_after_change_threshold...")
+    cur = db_conn.cursor()
+    get_all_serial_number = SQL_COMMANDS.get('get_all_serial_number')
+    serial_numbers = cur.execute(get_all_serial_number).fetchall()
+    for info in COLUMN_NAME_AND_GOODS_TYPE:
+        for serial_number in serial_numbers:
+            column_name = info[0]
+            goods_type = info[1]
+            sql_command = SQL_COMMANDS.get('change_threshold_update_deliver_status_with_3args').format(
+            column_name=column_name,
+            serial_number=serial_number[0], 
+            goods_type=goods_type)
+            cur.execute(sql_command)
+            sql_command =  SQL_COMMANDS.get('reset_need_refill_count_with_3args').format(
+                column_name=column_name,
+                serial_number=serial_number[0],
+                goods_type=goods_type)
+            cur.execute(sql_command)
+    db_conn.commit()
+    cur.close()
+    print("[INFO] end of update_deliver_status_after_change_threshold...")
 
 def update_deliver_status(db_conn):
     """
@@ -262,10 +324,9 @@ def update_deliver_status(db_conn):
         for serial_number in serial_numbers:
             column_name = info[0]
             goods_type = info[1]
-            sql_command = SQL_COMMANDS.get('update_deliver_status_with_4args').format(
+            sql_command = SQL_COMMANDS.get('update_deliver_status_with_3args').format(
             column_name=column_name,
             serial_number=serial_number[0], 
-            threshold=LEVEL_THRESHOLD,
             goods_type=goods_type)
             cur.execute(sql_command)
             sql_command =  SQL_COMMANDS.get('reset_need_refill_count_with_3args').format(
@@ -285,11 +346,15 @@ def get_deliver_status(db_conn):
     import_consumable_levels(db_conn)
     # 新增舊的 deliver_status table 中沒有的機器
     insert_or_ignore_deliver_status(db_conn)
-    # 趁此時 consumable_levels 的值是今天的，而 product_level 的值是昨天的
-    # 來設定 deliver_status need_refill 的值
-    update_deliver_status(db_conn)
-    # 將今天的數值填進 product_level 中
-    update_product_level(db_conn)
+    if update_threshold(db_conn):
+        # 有變更閥值故執行有變更閥值的 update_deliver_status 邏輯
+        update_deliver_status_after_change_threshold(db_conn)
+    else:
+        # 趁此時 consumable_levels 的值是今天的，而 product_level 的值是昨天的
+        # 來設定 deliver_status need_refill 的值
+        update_deliver_status(db_conn)
+        # 將今天的數值填進 product_level 中
+        update_product_level(db_conn)
     # 取 view table 結束這回合
     get_need_refill_sheet(export_query_command)
     print("[INFO] end of update and deliver status")
@@ -321,8 +386,6 @@ def reset_db(db_conn):
     create_db_commands = SQL_COMMANDS.get('reset_db_commands')
     for key in create_db_commands.keys():
         sql_command = create_db_commands.get(key)
-        if (key == "create_view_get_need_deliver_report"):
-            sql_command = create_db_commands.get(key).format(level_threshold=str(LEVEL_THRESHOLD))
         print("[INFO] proccessing {command}".format(command=key))
         cur.execute(sql_command)
         time.sleep(1)
